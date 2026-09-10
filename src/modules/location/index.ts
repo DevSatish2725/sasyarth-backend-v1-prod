@@ -1,0 +1,1 @@
+export {default as locationRouter} from "./location.routes";
