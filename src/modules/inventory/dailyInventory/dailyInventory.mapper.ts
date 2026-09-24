@@ -20,6 +20,7 @@ export const sellerShop = (
     completedDeals: number;
   },
   isSaved: boolean,
+  shopOwner: boolean,
 ): SellerShopResponse => {
   const user = seller.userId as unknown as PopulatedUser;
 
@@ -35,6 +36,11 @@ export const sellerShop = (
         vegetableId: vegetable._id.toString(),
 
         vegetableName: vegetable.name,
+
+        imageUrl: vegetable.imageUrl,
+
+        displayNames: vegetable.displayNames,
+        searchAliases: vegetable.searchAliases,
 
         unit: item.unit,
 
@@ -62,6 +68,7 @@ export const sellerShop = (
         completedDeals: reputation.completedDeals,
       },
       isSaved,
+      shopOwner,
     },
 
     inventory: {

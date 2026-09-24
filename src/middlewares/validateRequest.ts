@@ -34,10 +34,7 @@ export const validateRequest =
   async (req: Request, _res: Response, next: NextFunction) => {
     try {
       if (schemas.body) {
-        if (!req.body) {
-          throw new ApiError(400, "Request body is required.");
-        }
-        req.body = await schemas.body?.parseAsync(req.body);
+        req.body = await schemas.body.parseAsync(req.body);
       }
 
       if (schemas.params) {
@@ -47,9 +44,6 @@ export const validateRequest =
       }
 
       if (schemas.query) {
-        // req.query = (await schemas.query?.parseAsync(
-        //   req.query,
-        // )) as typeof req.query;
         await schemas.query.parseAsync(req.query);
       }
 

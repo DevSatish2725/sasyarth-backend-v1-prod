@@ -1,0 +1,4 @@
+export const CONTACT_INTERACTION_TYPE = {
+  VIEW_CONTACT: "VIEW_CONTACT",
+  CALL: "CALL",
+} as const;

@@ -16,7 +16,7 @@ sellerRouter.post(
 sellerRouter.get("/me", requireAuth, sellerController.me);
 
 sellerRouter.patch(
-  "/me",
+  "/apply",
   requireAuth,
   validateRequest(reApplySchema),
   sellerController.reApply,

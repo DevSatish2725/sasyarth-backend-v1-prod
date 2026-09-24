@@ -38,6 +38,12 @@ export const VegetableSchema = new Schema(
       required: true,
     },
 
+    searchAliases: {
+      type: [{
+        type: String
+      }],
+    },
+
     allowedUnits: {
       type: [
         {
@@ -51,6 +57,10 @@ export const VegetableSchema = new Schema(
     image: {
       type: String,
       trim: true,
+    },
+
+    imageUrl: {
+      type: String
     },
 
     isActive: {

@@ -8,12 +8,25 @@ import { sellerReviewController } from "../review/seller/seller-review-controlle
 import { requireAuth } from "../../middlewares/requireAuth";
 import { savedSellerParamsSchema } from "../saved-seller/saved-seller.validations";
 import { savedSellerController } from "../saved-seller/saved-seller.controller";
+import {
+  createSellerRatingSchema,
+  sellerIdSchema,
+  updateSellerRatingSchema,
+} from "../seller-rating/sellerRating.validation";
+import { sellerRatingController } from "../seller-rating/sellerRating.controller";
 
 const sellersRouter = Router();
 
 sellersRouter.get("/", optionalAuth, sellerController.getSellerListing);
 
-sellersRouter.get("/:sellerId", requireAuth, validateRequest(sellerSchemaId), sellerController.getCallSellerDetails)
+sellersRouter.get("/saved", requireAuth, savedSellerController.getSavedSellers);
+
+sellersRouter.get(
+  "/:sellerId/contact",
+  requireAuth,
+  validateRequest(sellerSchemaId),
+  sellerController.getCallSellerDetails,
+);
 
 sellersRouter.get(
   "/:sellerId/shop",
@@ -41,6 +54,31 @@ sellersRouter.delete(
   savedSellerController.removeSavedSeller,
 );
 
-sellersRouter.get("/saved", requireAuth, savedSellerController.getSavedSellers);
+sellersRouter.post(
+  "/:sellerId/ratings",
+  requireAuth,
+  validateRequest(createSellerRatingSchema),
+  sellerRatingController.create,
+);
+
+sellersRouter.get(
+  "/:sellerId/ratings/me",
+  requireAuth,
+  validateRequest(sellerIdSchema),
+  sellerRatingController.getMySellerRatingStatus,
+);
+
+sellersRouter.get(
+  "/:sellerId/ratings/summary",
+  validateRequest(sellerIdSchema),
+  sellerRatingController.getRatingSummary,
+);
+
+sellersRouter.patch(
+  "/:sellerId/ratings/me",
+  requireAuth,
+  validateRequest(updateSellerRatingSchema),
+  sellerRatingController.updateSellerRating,
+);
 
 export default sellersRouter;

@@ -1,15 +1,32 @@
 import { SupportedLanguage, UserAccountType } from "./user.types";
 
+export interface LocationPayload {
+  villageId: string;
+  districtId: string;
+  stateId: string;
+  pincode: string;
+}
+
 export interface Location {
-  village: string;
-  district: string;
   state: string;
+  district: string;
+  village: string;
   pincode: string;
 }
 
 export interface GeoLocation {
   type: string;
   coordinates: Number[];
+}
+
+export interface UpdateProfilePayloadDto {
+  fullName?: string;
+
+  preferredLanguage?: SupportedLanguage;
+
+  location?: LocationPayload;
+
+  geoLocation?: GeoLocation;
 }
 
 export interface UpdateProfileDto {

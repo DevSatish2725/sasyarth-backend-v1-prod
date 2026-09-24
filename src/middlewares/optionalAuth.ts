@@ -10,7 +10,6 @@ export const optionalAuth = (
   next: NextFunction,
 ) => {
   const authorization = req.headers.authorization;
-
   // Public request — no authentication provided.
   if (!authorization) {
     return next();

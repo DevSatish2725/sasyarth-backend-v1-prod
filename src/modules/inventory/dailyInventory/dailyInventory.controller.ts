@@ -137,8 +137,11 @@ class DailyInventoryController {
   sellerShop = catchAsync(async (req, res) => {
     const { sellerId } = req.params;
     const userId = req.user?.userId ?? "";
-
-    const shop = await dailyInventoryService.sellerShop(sellerId as string, userId);
+    
+    const shop = await dailyInventoryService.sellerShop(
+      sellerId as string,
+      userId,
+    );
 
     sendResponse(res, {
       statusCode: 200,

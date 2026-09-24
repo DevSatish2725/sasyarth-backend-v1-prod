@@ -14,6 +14,15 @@ export interface applySellerDto {
   documents: VerificationDocument[];
 }
 
+export interface applySellerWithLocationDto extends applySellerDto {
+  location: {
+    stateId: string;
+    districtId: string;
+    villageId: string;
+    pincode: string;
+  };
+}
+
 export interface reApplySellerDto {
   businessType?: BusinessTypes;
   documents?: VerificationDocument[];

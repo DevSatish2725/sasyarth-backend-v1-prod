@@ -82,9 +82,6 @@ class DailyInventoryService {
       sellerId,
       inventoryDate: getTodayBusinessDate(),
     });
-    if (!inventory) {
-      throw new ApiError(404, "Today's inventory doesn't exist.");
-    }
 
     return inventory;
   }
@@ -129,7 +126,7 @@ class DailyInventoryService {
       const copyInventoryItems = [];
 
       const vegetableIds = yesterdayInventory.items.map(
-        (item) => item.vegetableId,
+        (item) => item.vegetableId._id,
       );
       const vegetables = await Vegetable.find({
         _id: { $in: vegetableIds },
@@ -139,11 +136,12 @@ class DailyInventoryService {
       );
 
       for (let item of yesterdayInventory.items) {
-        const vegetable = vegetablesMap.get(item.vegetableId.toString());
+        const vegetableId = item.vegetableId._id.toString();
+        const vegetable = vegetablesMap.get(vegetableId);
         const errors = [];
         if (!vegetable) {
           skippedItems.push({
-            vegetableId: item.vegetableId.toString(),
+            vegetableId,
             reason: ["Vegetable doesn't exist."],
           });
 
@@ -158,7 +156,7 @@ class DailyInventoryService {
 
         if (errors.length) {
           skippedItems.push({
-            vegetableId: item.vegetableId.toString(),
+            vegetableId: vegetableId,
             vegetableName: vegetable.name,
             reason: errors,
           });
@@ -169,7 +167,7 @@ class DailyInventoryService {
 
       const newItems: CreateInventoryItemPayload[] = copyInventoryItems.map(
         (item) => ({
-          vegetableId: item.vegetableId,
+          vegetableId: item.vegetableId._id,
           unit: item.unit,
           availableQty: 0,
           committedQty: 0,
@@ -191,10 +189,14 @@ class DailyInventoryService {
         items: yesterdayInventory.items.length ? newItems : [],
       };
 
-      const newInventoryRes =
-        await dailyInventoryRepository.create(newInventory);
+      await dailyInventoryRepository.create(newInventory);
+      const createdInventory =
+        await dailyInventoryRepository.findBySellerAndDate({
+          sellerId,
+          inventoryDate: getTodayBusinessDate(),
+        });
       return {
-        inventoryDetails: newInventoryRes,
+        ...createdInventory,
         skippedItems,
       };
     }
@@ -234,8 +236,11 @@ class DailyInventoryService {
         }));
       }
 
-      const newInventory =
-        await dailyInventoryRepository.create(createInventoryData);
+      await dailyInventoryRepository.create(createInventoryData);
+      const newInventory = await dailyInventoryRepository.findBySellerAndDate({
+        sellerId,
+        inventoryDate: getTodayBusinessDate(),
+      });
       return newInventory;
     }
   }
@@ -265,8 +270,12 @@ class DailyInventoryService {
       this.validateInventoryItems(items, vegetables);
     }
     inventory.set("items", items);
-    const updatedInventory = dailyInventoryRepository.save(inventory);
-    return updatedInventory;
+    await dailyInventoryRepository.save(inventory);
+    const newInventory = await dailyInventoryRepository.findBySellerAndDate({
+      sellerId,
+      inventoryDate: getTodayBusinessDate(),
+    });
+    return newInventory;
   }
 
   async publishInventory(sellerId: string, inventoryId: string) {
@@ -285,14 +294,17 @@ class DailyInventoryService {
 
     const vegetableIds = inventory.items.map((item) => item.vegetableId);
     const vegetables = await vegetableRepository.findByIds(vegetableIds);
-    const seller = await sellerRepository.findByIdWithUser(sellerId);
 
     this.validateInventoryItems(inventory.items, vegetables);
     this.validatePublishInventoryItems(inventory.items);
 
     inventory.status = "PUBLISHED";
-    const response = await dailyInventoryRepository.save(inventory);
-    return response;
+    await dailyInventoryRepository.save(inventory);
+    const newInventory = await dailyInventoryRepository.findBySellerAndDate({
+      sellerId,
+      inventoryDate: getTodayBusinessDate(),
+    });
+    return newInventory;
   }
   async updatePublishedInventory(
     sellerId: string,
@@ -373,14 +385,16 @@ class DailyInventoryService {
     }
 
     // Get final DB state after transaction
-    const updatedInventory =
-      await dailyInventoryRepository.findById(inventoryId);
+    const newInventory = await dailyInventoryRepository.findBySellerAndDate({
+      sellerId,
+      inventoryDate: getTodayBusinessDate(),
+    });
 
-    if (!updatedInventory) {
+    if (!newInventory) {
       throw new ApiError(404, "Inventory doesn't exist.");
     }
 
-    return updatedInventory;
+    return newInventory;
   }
 
   async makeInventoryUnavailable(sellerId: string, inventoryId: string) {
@@ -488,7 +502,9 @@ class DailyInventoryService {
       isSaved = true;
     }
 
-    return sellerShop(seller, inventory, reputation, isSaved);
+    const shopOwner = userId === seller.userId._id.toString();
+
+    return sellerShop(seller, inventory, reputation, isSaved, shopOwner);
   }
 }
 

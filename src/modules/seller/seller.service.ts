@@ -8,7 +8,11 @@ import {
   SELLER_STATUS,
   SELLER_VERIFICATION_STATUS,
 } from "./seller.constants";
-import { applySellerDto, reApplySellerDto } from "./seller.dto";
+import {
+  applySellerDto,
+  applySellerWithLocationDto,
+  reApplySellerDto,
+} from "./seller.dto";
 import { sellerRepository } from "./seller.repository";
 import { toCallSellerDetails, toSellerProfileDto } from "./seller.mapper";
 import {
@@ -22,6 +26,8 @@ import { User } from "../users/user.model";
 import { sellerPipeline } from "./seller.pipeline";
 import { logger } from "../../config/logger";
 import { locationRepository } from "../location/location.repository";
+import { contactInteractionRepository } from "../contact-interaction/contactInteractionRepository";
+import { userRepository } from "../users/user.repository";
 
 class SellerService {
   private encodeCursor(cursor: SellerListingCursor): string {
@@ -46,10 +52,33 @@ class SellerService {
       throw new ApiError(400, "Invalid pagination cursor");
     }
   }
-  async apply(userId: string, payload: applySellerDto) {
+  async apply(userId: string, payload: applySellerWithLocationDto) {
     const seller = await sellerRepository.findByUserId(userId);
     if (seller) {
       throw new ApiError(429, SELLER_MESSAGES.REQUEST_ALREADY_SENT);
+    }
+
+    const {
+      location: { stateId, districtId, villageId, pincode },
+    } = payload;
+    const state = await locationRepository.findStateById(
+      new Types.ObjectId(stateId),
+    );
+    if (!state) {
+      throw new ApiError(409, "Select valid state.");
+    }
+
+    const district = await locationRepository.findDistrictById(
+      new Types.ObjectId(districtId),
+    );
+    if (!district) {
+      throw new ApiError(409, "Select valid district.");
+    }
+    const village = await locationRepository.findVillageById(
+      new Types.ObjectId(villageId),
+    );
+    if (!village) {
+      throw new ApiError(409, "Select valid village.");
     }
 
     const createPayload: applySellerDto = {
@@ -60,6 +89,14 @@ class SellerService {
     };
 
     const newSeller = await sellerRepository.create(createPayload);
+    await userRepository.updateLocation(userId, {
+      location: {
+        state: state.name,
+        district: district.name,
+        village: village.name,
+        pincode,
+      },
+    });
     return toSellerProfileDto(newSeller);
   }
 
@@ -362,7 +399,7 @@ class SellerService {
         ...(normalizedVegetableIds
           ? { normalizedVegetableIds: normalizedVegetableIds }
           : {}),
-        ...(userId ? { userId: new Types.ObjectId(userId) } : {}),
+        userId,
         today,
         limit: safeLimit,
       });
@@ -390,6 +427,7 @@ class SellerService {
           ? { normalizedVegetableIds: normalizedVegetableIds }
           : {}),
         limit: safeLimit,
+        userId,
       });
 
       const sellers = await User.aggregate(pipeline);
@@ -433,7 +471,7 @@ class SellerService {
         ...(normalizedVegetableIds
           ? { normalizedVegetableIds: normalizedVegetableIds }
           : {}),
-        ...(userId ? { userId: new Types.ObjectId(userId) } : {}),
+        userId,
         today,
         limit: safeLimit,
       });
@@ -447,39 +485,6 @@ class SellerService {
     }
 
     /**
-     * No GPS:
-     * use buyer's own village.
-     */
-    if (
-      buyer.location?.state &&
-      buyer.location?.district &&
-      buyer.location?.village
-    ) {
-      const pipeline = sellerPipeline.getBroadSellerPipeline({
-        scope: "village",
-
-        state: buyer.location.state,
-
-        district: buyer.location.district,
-
-        village: buyer.location.village,
-        ...(normalizedVegetableIds
-          ? { normalizedVegetableIds: normalizedVegetableIds }
-          : {}),
-        today,
-
-        limit: safeLimit,
-      });
-
-      const sellers = await User.aggregate(pipeline);
-
-      return {
-        data: sellers,
-        matchingMode: "VILLAGE",
-      };
-    }
-
-    /**
      * Last fallback.
      */
     const pipeline = sellerPipeline.getPublicSellerPipeline({
@@ -488,6 +493,7 @@ class SellerService {
         : {}),
       today,
       limit: safeLimit,
+      userId,
     });
 
     const sellers = await User.aggregate(pipeline);
@@ -498,12 +504,33 @@ class SellerService {
     };
   }
 
-  async getCallSellerDetails(sellerId: string) {
-    const result = await sellerRepository.findByIdWithUser(sellerId);
-    if (!result) {
+  async getCallSellerDetails(sellerId: string, buyerId: string) {
+    const seller = await sellerRepository.findByIdWithUser(sellerId);
+    if (!seller) {
       throw new ApiError(404, "No details found");
     }
-    return toCallSellerDetails(result);
+
+    // Prevent own interaction from becoming
+    // eligible for rating.
+    if (seller.userId._id.toString() === buyerId) {
+      throw new ApiError(400, "You cannot contact your own seller profile.");
+    }
+
+    const oneHourAgo = new Date(Date.now() - 1 * 60 * 1000);
+
+    const recentInteraction =
+      await contactInteractionRepository.findRecentInteraction({
+        buyerUserId: buyerId,
+        sellerProfileId: sellerId,
+        since: oneHourAgo,
+      });
+    if (!recentInteraction) {
+      await contactInteractionRepository.createViewContactInteraction({
+        sellerProfileId: sellerId,
+        buyerUserId: buyerId,
+      });
+    }
+    return toCallSellerDetails(seller);
   }
 }
 

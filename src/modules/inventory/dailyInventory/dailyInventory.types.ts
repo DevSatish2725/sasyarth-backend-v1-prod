@@ -50,6 +50,49 @@ export interface CreateInventoryPayload {
 export interface PopulatedVegetable {
   _id: string;
   name: string;
+  imageUrl: string;
+  displayNames: {
+    en: string;
+    hi: string;
+  };
+  searchAliases: string[];
+}
+export interface PopulatedInventoryItem {
+  _id: Types.ObjectId;
+
+  vegetableId: PopulatedVegetable;
+
+  unit: UnitType;
+
+  availableQty: number;
+
+  committedQty: number;
+
+  marketPrice: number;
+
+  sellerPrice: number;
+
+  isNegotiable: boolean;
+
+  displayOrder: number;
+
+  imageOverride?: string | null;
+}
+
+export interface PopulatedInventory {
+  _id: Types.ObjectId;
+
+  sellerProfileId: Types.ObjectId;
+
+  status: StatusType;
+
+  inventoryDate: Date;
+
+  items: PopulatedInventoryItem[];
+
+  createdAt: Date;
+
+  updatedAt: Date;
 }
 
 export interface PopulatedUser {
@@ -60,7 +103,7 @@ export interface PopulatedUser {
     district: string;
     village: string;
     pincode: string;
-  }
+  };
 }
 export interface SellerShopItem {
   itemId: string | Types.ObjectId;
@@ -83,12 +126,13 @@ export interface SellerShopResponse {
       district: string;
       village: string;
       pincode: string;
-    },
+    };
     reputation: {
       averageRating: number;
       completedDeals: number;
     };
     isSaved: boolean;
+    shopOwner: boolean;
   };
 
   inventory: {

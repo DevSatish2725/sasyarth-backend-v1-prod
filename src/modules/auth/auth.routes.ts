@@ -22,9 +22,7 @@ import { Router } from "express";
 import { authController } from "./auth.controller.js";
 import { validateRequest } from "../../middlewares/validateRequest";
 import {
-  loginSchema,
   registerSchema,
-  resetPasswordSchema,
   sendOtpSchema,
   verifyOtpSchema,
 } from "./auth.validation";

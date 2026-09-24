@@ -3,21 +3,33 @@ import { DailyInventory } from "./dailyInventory.model";
 import {
   CreateInventoryPayload,
   DailyInventoryDocument,
-  DailyInventoryEntity,
-  SellerShopResponse,
-  StatusType,
+  PopulatedInventory,
+  PopulatedVegetable,
 } from "./dailyInventory.types";
 import { STATUS } from "./dailyInventory.constants";
 
 class DailyInventoryRepository {
-  findBySellerAndDate({
+  async findBySellerAndDate({
     sellerId,
     inventoryDate,
   }: {
     sellerId: string;
     inventoryDate: Date;
-  }): Promise<CreateInventoryPayload | null> {
-    return DailyInventory.findOne({ sellerProfileId: sellerId, inventoryDate });
+  }): Promise<PopulatedInventory | null> {
+    const inventory = await DailyInventory.findOne({
+      sellerProfileId: sellerId,
+      inventoryDate,
+    })
+      .populate<{
+        "items.vegetableId": PopulatedVegetable;
+      }>({
+        path: "items.vegetableId",
+        select: "name",
+      })
+      .lean()
+      .exec();
+
+    return inventory as PopulatedInventory | null;
   }
 
   findFutureDraft(sellerId: string, fromDate: Date) {
@@ -112,7 +124,7 @@ class DailyInventoryRepository {
       status: STATUS.PUBLISHED,
     }).populate({
       path: "items.vegetableId",
-      select: "_id name",
+      select: "_id name imageUrl displayNames searchAliases",
     });
   }
 

@@ -14,10 +14,12 @@ class SellerPipeline {
     normalizedVegetableIds,
     today,
     limit,
+    userId,
   }: {
     normalizedVegetableIds?: Types.ObjectId[];
     today: Date;
     limit: number;
+    userId: string;
   }): PipelineStage[] {
     return [
       /**
@@ -26,13 +28,15 @@ class SellerPipeline {
        * We also don't actually need accountType here
        * if Seller.userId is the source of truth.
        */
-      ...sellerLookup.getSellerLookupStages(),
+      ...sellerLookup.getSellerLookupStages(userId),
 
       ...sellerLookup.getSellerReputationLookupStages(),
 
       ...sellerLookup.getInventoryLookupStages(today, normalizedVegetableIds),
 
       ...sellerLookup.getVegetableLookupStages(),
+
+      ...sellerLookup.getSellerRatingLookupStages(),
 
       /**
        * General listing order.
@@ -72,41 +76,102 @@ class SellerPipeline {
           businessType: "$seller.businessType",
 
           vegetables: {
-            $map: {
-              input: "$dailyInventory.matchingItems",
-              as: "item",
+            $let: {
+              vars: {
+                itemsWithMatch: {
+                  $map: {
+                    input: "$dailyInventory.availableItems",
+                    as: "item",
 
-              in: {
-                id: "$$item.vegetableId",
+                    in: {
+                      vegetableId: "$$item.vegetableId",
+                      sellerPrice: "$$item.sellerPrice",
+                      unit: "$$item.unit",
+                      availableQty: "$$item.availableQty",
 
-                name: {
-                  $let: {
-                    vars: {
-                      vegetable: {
-                        $arrayElemAt: [
-                          {
-                            $filter: {
-                              input: "$vegetables",
-                              as: "vegetable",
-                              cond: {
-                                $eq: ["$$vegetable._id", "$$item.vegetableId"],
-                              },
-                            },
-                          },
-                          0,
-                        ],
-                      },
+                      isMatched: normalizedVegetableIds?.length
+                        ? {
+                            $in: ["$$item.vegetableId", normalizedVegetableIds],
+                          }
+                        : false,
                     },
-
-                    in: "$$vegetable.name",
                   },
                 },
+              },
 
-                sellerPrice: "$$item.sellerPrice",
-                unit: "$$item.unit",
-                availableQty: "$$item.availableQty",
+              in: {
+                $map: {
+                  input: {
+                    $sortArray: {
+                      input: "$$itemsWithMatch",
+                      sortBy: {
+                        isMatched: -1,
+                      },
+                    },
+                  },
+
+                  as: "item",
+
+                  in: {
+                    $let: {
+                      vars: {
+                        vegetable: {
+                          $arrayElemAt: [
+                            {
+                              $filter: {
+                                input: "$vegetables",
+                                as: "vegetable",
+                                cond: {
+                                  $eq: [
+                                    "$$vegetable._id",
+                                    "$$item.vegetableId",
+                                  ],
+                                },
+                              },
+                            },
+                            0,
+                          ],
+                        },
+                      },
+
+                      in: {
+                        id: "$$item.vegetableId",
+                        name: "$$vegetable.name",
+                        imageUrl: "$$vegetable.imageUrl",
+
+                        sellerPrice: "$$item.sellerPrice",
+                        unit: "$$item.unit",
+                        availableQty: "$$item.availableQty",
+
+                        isMatched: "$$item.isMatched",
+                      },
+                    },
+                  },
+                },
               },
             },
+          },
+
+          averageRating: {
+            $round: [
+              {
+                $ifNull: [
+                  {
+                    $arrayElemAt: ["$ratingSummary.averageRating", 0],
+                  },
+                  0,
+                ],
+              },
+              1,
+            ],
+          },
+          ratingCount: {
+            $ifNull: [
+              {
+                $arrayElemAt: ["$ratingSummary.ratingCount", 0],
+              },
+              0,
+            ],
           },
         },
       },
@@ -126,6 +191,7 @@ class SellerPipeline {
     normalizedVegetableIds,
     today,
     limit,
+    userId,
   }: {
     state: string;
     district: string;
@@ -133,6 +199,7 @@ class SellerPipeline {
     normalizedVegetableIds?: Types.ObjectId[];
     today: Date;
     limit: number;
+    userId: string;
   }): PipelineStage[] {
     return [
       /**
@@ -146,11 +213,13 @@ class SellerPipeline {
         },
       },
 
-      ...sellerLookup.getSellerLookupStages(),
+      ...sellerLookup.getSellerLookupStages(userId),
 
       ...sellerLookup.getInventoryLookupStages(today, normalizedVegetableIds),
 
       ...sellerLookup.getVegetableLookupStages(),
+
+      ...sellerLookup.getSellerRatingLookupStages(),
 
       {
         $sort: {
@@ -182,41 +251,102 @@ class SellerPipeline {
           },
 
           vegetables: {
-            $map: {
-              input: "$dailyInventory.matchingItems",
-              as: "item",
+            $let: {
+              vars: {
+                itemsWithMatch: {
+                  $map: {
+                    input: "$dailyInventory.availableItems",
+                    as: "item",
 
-              in: {
-                id: "$$item.vegetableId",
+                    in: {
+                      vegetableId: "$$item.vegetableId",
+                      sellerPrice: "$$item.sellerPrice",
+                      unit: "$$item.unit",
+                      availableQty: "$$item.availableQty",
 
-                name: {
-                  $let: {
-                    vars: {
-                      vegetable: {
-                        $arrayElemAt: [
-                          {
-                            $filter: {
-                              input: "$vegetables",
-                              as: "vegetable",
-                              cond: {
-                                $eq: ["$$vegetable._id", "$$item.vegetableId"],
-                              },
-                            },
-                          },
-                          0,
-                        ],
-                      },
+                      isMatched: normalizedVegetableIds?.length
+                        ? {
+                            $in: ["$$item.vegetableId", normalizedVegetableIds],
+                          }
+                        : false,
                     },
-
-                    in: "$$vegetable.name",
                   },
                 },
+              },
 
-                sellerPrice: "$$item.sellerPrice",
-                unit: "$$item.unit",
-                availableQty: "$$item.availableQty",
+              in: {
+                $map: {
+                  input: {
+                    $sortArray: {
+                      input: "$$itemsWithMatch",
+                      sortBy: {
+                        isMatched: -1,
+                      },
+                    },
+                  },
+
+                  as: "item",
+
+                  in: {
+                    $let: {
+                      vars: {
+                        vegetable: {
+                          $arrayElemAt: [
+                            {
+                              $filter: {
+                                input: "$vegetables",
+                                as: "vegetable",
+                                cond: {
+                                  $eq: [
+                                    "$$vegetable._id",
+                                    "$$item.vegetableId",
+                                  ],
+                                },
+                              },
+                            },
+                            0,
+                          ],
+                        },
+                      },
+
+                      in: {
+                        id: "$$item.vegetableId",
+                        name: "$$vegetable.name",
+                        imageUrl: "$$vegetable.imageUrl",
+
+                        sellerPrice: "$$item.sellerPrice",
+                        unit: "$$item.unit",
+                        availableQty: "$$item.availableQty",
+
+                        isMatched: "$$item.isMatched",
+                      },
+                    },
+                  },
+                },
               },
             },
+          },
+
+          averageRating: {
+            $round: [
+              {
+                $ifNull: [
+                  {
+                    $arrayElemAt: ["$ratingSummary.averageRating", 0],
+                  },
+                  0,
+                ],
+              },
+              1,
+            ],
+          },
+          ratingCount: {
+            $ifNull: [
+              {
+                $arrayElemAt: ["$ratingSummary.ratingCount", 0],
+              },
+              0,
+            ],
           },
         },
       },
@@ -234,17 +364,17 @@ class SellerPipeline {
     latitude,
     radiusInKm,
     normalizedVegetableIds,
-    userId,
     today,
     limit,
+    userId,
   }: {
     longitude: number;
     latitude: number;
     radiusInKm: number;
     normalizedVegetableIds?: Types.ObjectId[];
-    userId?: Types.ObjectId;
     today: Date;
     limit: number;
+    userId: string;
   }): PipelineStage[] {
     return [
       /**
@@ -268,7 +398,7 @@ class SellerPipeline {
         },
       },
 
-      ...sellerLookup.getSellerLookupStages(),
+      ...sellerLookup.getSellerLookupStages(userId),
 
       ...sellerLookup.getSellerReputationLookupStages(),
 
@@ -277,6 +407,8 @@ class SellerPipeline {
       ...sellerLookup.getSavedSellerLookupStages(userId),
 
       ...sellerLookup.getVegetableLookupStages(),
+
+      ...sellerLookup.getSellerRatingLookupStages(),
 
       {
         $set: {
@@ -328,41 +460,102 @@ class SellerPipeline {
           },
 
           vegetables: {
-            $map: {
-              input: "$dailyInventory.matchingItems",
-              as: "item",
+            $let: {
+              vars: {
+                itemsWithMatch: {
+                  $map: {
+                    input: "$dailyInventory.availableItems",
+                    as: "item",
 
-              in: {
-                id: "$$item.vegetableId",
+                    in: {
+                      vegetableId: "$$item.vegetableId",
+                      sellerPrice: "$$item.sellerPrice",
+                      unit: "$$item.unit",
+                      availableQty: "$$item.availableQty",
 
-                name: {
-                  $let: {
-                    vars: {
-                      vegetable: {
-                        $arrayElemAt: [
-                          {
-                            $filter: {
-                              input: "$vegetables",
-                              as: "vegetable",
-                              cond: {
-                                $eq: ["$$vegetable._id", "$$item.vegetableId"],
-                              },
-                            },
-                          },
-                          0,
-                        ],
-                      },
+                      isMatched: normalizedVegetableIds?.length
+                        ? {
+                            $in: ["$$item.vegetableId", normalizedVegetableIds],
+                          }
+                        : false,
                     },
-
-                    in: "$$vegetable.name",
                   },
                 },
+              },
 
-                sellerPrice: "$$item.sellerPrice",
-                unit: "$$item.unit",
-                availableQty: "$$item.availableQty",
+              in: {
+                $map: {
+                  input: {
+                    $sortArray: {
+                      input: "$$itemsWithMatch",
+                      sortBy: {
+                        isMatched: -1,
+                      },
+                    },
+                  },
+
+                  as: "item",
+
+                  in: {
+                    $let: {
+                      vars: {
+                        vegetable: {
+                          $arrayElemAt: [
+                            {
+                              $filter: {
+                                input: "$vegetables",
+                                as: "vegetable",
+                                cond: {
+                                  $eq: [
+                                    "$$vegetable._id",
+                                    "$$item.vegetableId",
+                                  ],
+                                },
+                              },
+                            },
+                            0,
+                          ],
+                        },
+                      },
+
+                      in: {
+                        id: "$$item.vegetableId",
+                        name: "$$vegetable.name",
+                        imageUrl: "$$vegetable.imageUrl",
+
+                        sellerPrice: "$$item.sellerPrice",
+                        unit: "$$item.unit",
+                        availableQty: "$$item.availableQty",
+
+                        isMatched: "$$item.isMatched",
+                      },
+                    },
+                  },
+                },
               },
             },
+          },
+
+          averageRating: {
+            $round: [
+              {
+                $ifNull: [
+                  {
+                    $arrayElemAt: ["$ratingSummary.averageRating", 0],
+                  },
+                  0,
+                ],
+              },
+              1,
+            ],
+          },
+          ratingCount: {
+            $ifNull: [
+              {
+                $arrayElemAt: ["$ratingSummary.ratingCount", 0],
+              },
+              0,
+            ],
           },
         },
       },
@@ -427,7 +620,7 @@ class SellerPipeline {
         $match: locationMatch,
       },
 
-      ...sellerLookup.getSellerLookupStages(),
+      ...sellerLookup.getSellerLookupStages(userId),
 
       ...sellerLookup.getSellerReputationLookupStages(),
 
@@ -436,6 +629,8 @@ class SellerPipeline {
       ...sellerLookup.getSavedSellerLookupStages(userId),
 
       ...sellerLookup.getVegetableLookupStages(),
+
+      ...sellerLookup.getSellerRatingLookupStages(),
 
       {
         $sort: {
@@ -471,41 +666,102 @@ class SellerPipeline {
           },
 
           vegetables: {
-            $map: {
-              input: "$dailyInventory.matchingItems",
-              as: "item",
+            $let: {
+              vars: {
+                itemsWithMatch: {
+                  $map: {
+                    input: "$dailyInventory.availableItems",
+                    as: "item",
 
-              in: {
-                id: "$$item.vegetableId",
+                    in: {
+                      vegetableId: "$$item.vegetableId",
+                      sellerPrice: "$$item.sellerPrice",
+                      unit: "$$item.unit",
+                      availableQty: "$$item.availableQty",
 
-                name: {
-                  $let: {
-                    vars: {
-                      vegetable: {
-                        $arrayElemAt: [
-                          {
-                            $filter: {
-                              input: "$vegetables",
-                              as: "vegetable",
-                              cond: {
-                                $eq: ["$$vegetable._id", "$$item.vegetableId"],
-                              },
-                            },
-                          },
-                          0,
-                        ],
-                      },
+                      isMatched: normalizedVegetableIds?.length
+                        ? {
+                            $in: ["$$item.vegetableId", normalizedVegetableIds],
+                          }
+                        : false,
                     },
-
-                    in: "$$vegetable.name",
                   },
                 },
+              },
 
-                sellerPrice: "$$item.sellerPrice",
-                unit: "$$item.unit",
-                availableQty: "$$item.availableQty",
+              in: {
+                $map: {
+                  input: {
+                    $sortArray: {
+                      input: "$$itemsWithMatch",
+                      sortBy: {
+                        isMatched: -1,
+                      },
+                    },
+                  },
+
+                  as: "item",
+
+                  in: {
+                    $let: {
+                      vars: {
+                        vegetable: {
+                          $arrayElemAt: [
+                            {
+                              $filter: {
+                                input: "$vegetables",
+                                as: "vegetable",
+                                cond: {
+                                  $eq: [
+                                    "$$vegetable._id",
+                                    "$$item.vegetableId",
+                                  ],
+                                },
+                              },
+                            },
+                            0,
+                          ],
+                        },
+                      },
+
+                      in: {
+                        id: "$$item.vegetableId",
+                        name: "$$vegetable.name",
+                        imageUrl: "$$vegetable.imageUrl",
+
+                        sellerPrice: "$$item.sellerPrice",
+                        unit: "$$item.unit",
+                        availableQty: "$$item.availableQty",
+
+                        isMatched: "$$item.isMatched",
+                      },
+                    },
+                  },
+                },
               },
             },
+          },
+
+          averageRating: {
+            $round: [
+              {
+                $ifNull: [
+                  {
+                    $arrayElemAt: ["$ratingSummary.averageRating", 0],
+                  },
+                  0,
+                ],
+              },
+              1,
+            ],
+          },
+          ratingCount: {
+            $ifNull: [
+              {
+                $arrayElemAt: ["$ratingSummary.ratingCount", 0],
+              },
+              0,
+            ],
           },
         },
       },

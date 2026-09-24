@@ -38,6 +38,8 @@ import { locationRepository } from "../location/location.repository";
 import { logger } from "../../config/logger";
 import { sellerRepository } from "../seller/seller.repository";
 import { mapAuthUserResponse, mapUserProfileResponse } from "./auth.mapper";
+import { User } from "../users/user.model";
+import { LocationWithIds } from "../location/location.types";
 
 class AuthService {
   async registerSendOtp(mobileNumber: string) {
@@ -206,7 +208,7 @@ class AuthService {
   }
 
   async me(userId: string) {
-    const user = await userRepository.findById(userId);
+    const user = await userRepository.findByIdWithMobileNumber(userId);
 
     if (!user) {
       throw new ApiError(404, "User not found.");
@@ -214,7 +216,41 @@ class AuthService {
 
     const sellerProfile = await sellerRepository.findByUserId(userId);
 
-    return mapUserProfileResponse(user, sellerProfile);
+    let locationWithIds: LocationWithIds | null = null;
+
+    if (user?.location) {
+      const existingState = await locationRepository.findStateByName(
+        user.location.state,
+      );
+
+      const existingDistrict =
+        await locationRepository.findDistrictByNameAndStateId(
+          user.location.district,
+          existingState!._id,
+        );
+      const existingVillage =
+        await locationRepository.findVillageByNameAndDistrictId(
+          user.location.village,
+          existingDistrict!._id,
+        );
+      locationWithIds = {
+        village: {
+          id: existingVillage!._id.toString(),
+          name: existingVillage!.name,
+        },
+        state: {
+          id: existingState!._id.toString(),
+          name: existingState!.name,
+        },
+        district: {
+          id: existingDistrict!._id.toString(),
+          name: existingDistrict!.name,
+        },
+        pincode: user.location.pincode
+      };
+    }
+
+    return mapUserProfileResponse(user, sellerProfile, locationWithIds);
   }
 
   async refreshToken(refreshToken?: string): Promise<string> {

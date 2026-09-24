@@ -41,7 +41,6 @@ class SavedSellerController {
 
   getSavedSellers = catchAsync(async (req, res) => {
     const buyerId = new Types.ObjectId(req.user!.userId);
-
     const sellers = await savedSellerService.getSavedSellers(buyerId);
 
     sendResponse(res, {

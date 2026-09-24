@@ -37,24 +37,40 @@ export const inventorySchemaId = {
   }),
 };
 
+const inventoryItemsSchema = z
+  .array(inventoryItemSchema)
+  .refine(
+    (items) => {
+      const vegetableIds = items.map(
+        (item) => item.vegetableId,
+      );
+
+      return (
+        new Set(vegetableIds).size ===
+        vegetableIds.length
+      );
+    },
+    {
+      message:
+        "Duplicate vegetables are not allowed.",
+    },
+  );
+
 export const createDraftInventorySchema = {
-  body: z.object({
-    items: z
-      .array(inventoryItemSchema)
-      .optional()
-      .refine(
-        (data) => {
-          if (!data) return;
-          const vegetableIds = data.map((item) => item.vegetableId);
-          return new Set(vegetableIds).size === vegetableIds.length;
-        },
-        {
-          message: "Duplicate vegetables are not allowed.",
-        },
-      ),
-  }),
+  body: z
+    .object({
+      items:
+        inventoryItemsSchema.optional(),
+    })
+    .default({}),
+
   params: z.object({
-    mode: z.enum(Object.values(MODE) as [string, ...string[]]),
+    mode: z.enum(
+      Object.values(MODE) as [
+        string,
+        ...string[],
+      ],
+    ),
   }),
 };
 

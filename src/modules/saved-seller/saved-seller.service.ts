@@ -3,6 +3,7 @@ import { ApiError } from "../../utils/ApiError";
 import { savedSellerRepository } from "./saved-seller.repository";
 import { sellerRepository } from "../seller/seller.repository";
 import { mapSavedSellerListItem } from "./saved-seller.mapper";
+import { getTodayBusinessDate } from "../../utils/businessDate";
 
 class SavedSellerService {
   async saveSeller(buyerId: Types.ObjectId, sellerProfileId: Types.ObjectId) {
@@ -48,8 +49,11 @@ class SavedSellerService {
   }
 
   async getSavedSellers(buyerId: Types.ObjectId) {
-    const savedSellers =
-      await savedSellerRepository.findBuyerSavedSellers(buyerId);
+    const today = getTodayBusinessDate();
+    const savedSellers = await savedSellerRepository.findBuyerSavedSellers(
+      buyerId,
+      today,
+    );
 
     return savedSellers.map(mapSavedSellerListItem);
   }

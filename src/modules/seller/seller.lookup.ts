@@ -12,8 +12,19 @@ import { STATUS } from "../inventory/dailyInventory/dailyInventory.constants";
  * Seller.userId
  */
 class SellerLookup {
-  getSellerLookupStages(): PipelineStage[] {
+  getSellerLookupStages(currentUserId: string): PipelineStage[] {
     return [
+      ...(currentUserId
+        ? [
+            {
+              $match: {
+                _id: {
+                  $ne: new Types.ObjectId(currentUserId),
+                },
+              },
+            } as PipelineStage,
+          ]
+        : []),
       {
         $lookup: {
           from: "sellers",
@@ -173,18 +184,55 @@ class SellerLookup {
       {
         $lookup: {
           from: "vegetables",
-
           localField: "dailyInventory.availableItems.vegetableId",
-
           foreignField: "_id",
-
           as: "vegetables",
         },
       },
     ];
   }
 
-  getSavedSellerLookupStages = (buyerId?: Types.ObjectId): PipelineStage[] => {
+  getSellerRatingLookupStages(): PipelineStage[] {
+    return [
+      {
+        $lookup: {
+          from: "sellerratings",
+
+          let: {
+            sellerProfileId: "$seller._id",
+          },
+
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ["$sellerProfileId", "$$sellerProfileId"],
+                },
+              },
+            },
+
+            {
+              $group: {
+                _id: null,
+
+                averageRating: {
+                  $avg: "$rating",
+                },
+
+                ratingCount: {
+                  $sum: 1,
+                },
+              },
+            },
+          ],
+
+          as: "ratingSummary",
+        },
+      },
+    ];
+  }
+
+  getSavedSellerLookupStages = (buyerId?: string): PipelineStage[] => {
     // Guest user
     if (!buyerId) {
       return [
@@ -215,7 +263,7 @@ class SellerLookup {
                       $eq: ["$sellerProfileId", "$$sellerProfileId"],
                     },
                     {
-                      $eq: ["$buyerId", buyerId],
+                      $eq: ["$buyerId", new Types.ObjectId(buyerId)],
                     },
                   ],
                 },
@@ -316,7 +364,7 @@ class SellerLookup {
                     {
                       $eq: ["$sellerProfileId", "$$sellerProfileId"],
                     },
-//TODO: Uncomment this condition when order status is implemented
+                    //TODO: Uncomment this condition when order status is implemented
                     // {
                     //   $eq: ["$status", ORDER_STATUS.COMPLETED],
                     // },

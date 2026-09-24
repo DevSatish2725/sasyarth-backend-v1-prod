@@ -17,7 +17,6 @@ export const seedAdmin = async () => {
     const admin = await User.create({
       fullName: env.ADMIN_NAME,
       mobileNumber: env.ADMIN_MOBILE_NUMBER,
-      password: env.ADMIN_PASSWORD,
       accountType: USER_ACCOUNT_TYPES.ADMIN,
       isPhoneVerified: true,
     });

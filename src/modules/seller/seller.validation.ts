@@ -1,14 +1,6 @@
 import { z } from "zod";
-import {
-  BUSINESS_TYPES,
-  DOCUMENT_TYPES,
-  SELLER_VERIFICATION_STATUS,
-} from "./seller.constants";
-import {
-  BusinessTypes,
-  DocumentTypes,
-  SellerVerificationStatus,
-} from "./seller.types";
+import { BUSINESS_TYPES, DOCUMENT_TYPES } from "./seller.constants";
+import { BusinessTypes, DocumentTypes } from "./seller.types";
 import { SupportedLanguage } from "../users/user.types";
 import { SUPPORTED_LANGUAGES } from "../users/user.constants";
 
@@ -35,9 +27,9 @@ const applyBodySchema = z.object({
     ],
   ),
   location: z.object({
-    village: z.string().trim().min(2),
-    district: z.string().trim().min(2),
-    state: z.string().trim().min(2),
+    villageId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid village id."),
+    districtId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid district id."),
+    stateId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid state id."),
     pincode: z.string().regex(/^\d{6}$/, "Invalid pincode"),
   }),
   geoLocation: z

@@ -50,7 +50,7 @@ export type VerificationDocumentsList = VerificationDocument[];
 export type SellerSearchScope = "village" | "district" | "state";
 
 export interface GetSellerListingParams {
-  userId?: string;
+  userId: string;
   scope?: SellerSearchScope;
   state?: string;
   district?: string;
@@ -68,7 +68,7 @@ export interface BroadSellerPipelineParams {
   district?: string;
   village?: string;
   normalizedVegetableIds?: Types.ObjectId[];
-  userId?: Types.ObjectId;
+  userId: string;
   today: Date;
   limit: number;
 }

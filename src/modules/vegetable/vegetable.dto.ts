@@ -6,6 +6,8 @@ export interface CreateVegetableDto {
     en: string;
     hi: string;
   };
+  searchAliases: string[];
+  imageUrl: string;
   category: VegetableCategory;
   defaultUnit: VegetableUnit;
   allowedUnits: VegetableUnit[];

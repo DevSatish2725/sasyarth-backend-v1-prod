@@ -148,14 +148,9 @@ class SellerController {
     const params: GetSellerListingParams = {
       latitude: latitude ? Number(latitude) : undefined,
       longitude: longitude ? Number(longitude) : undefined,
+      userId: req.user?.userId ?? ""
     };
 
-    /**
-     * Optional authenticated user.
-     */
-    if (req.user?.userId) {
-      params.userId = req.user.userId;
-    }
 
     /**
      * Search scope
@@ -224,7 +219,8 @@ class SellerController {
 
   getCallSellerDetails = catchAsync(async (req, res) => {
     const { sellerId } = req.params;
-    const result = await sellerService.getCallSellerDetails(sellerId as string);
+    const buyerId = req.user?.userId;
+    const result = await sellerService.getCallSellerDetails(sellerId as string, buyerId as string);
     sendResponse(res, {
       statusCode: 200,
       data: result,

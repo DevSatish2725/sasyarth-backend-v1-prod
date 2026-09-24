@@ -18,9 +18,9 @@ export const updateProfileSchema = {
 
       location: z
         .object({
-          village: z.string().trim().min(2),
-          district: z.string().trim().min(2),
-          state: z.string().trim().min(2),
+          villageId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid village id."),
+          districtId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid district id."),
+          stateId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid state id."),
           pincode: z.string().regex(/^\d{6}$/),
         })
         .optional(),

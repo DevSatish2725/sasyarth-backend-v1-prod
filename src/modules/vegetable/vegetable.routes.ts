@@ -10,8 +10,6 @@ const vegetableRouter = Router();
 
 vegetableRouter.get(
   "/",
-  requireAuth,
-  requireVerifiedSeller,
   vegetableController.getActiveList,
 );
 

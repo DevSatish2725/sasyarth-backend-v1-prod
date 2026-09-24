@@ -30,7 +30,7 @@ import { adminVegetableRouter } from "./modules/vegetable/index";
 import { vegetableRouter } from "./modules/vegetable/index";
 import { dailyInventoryRouter } from "./modules/inventory/dailyInventory/index";
 import { sellersRouter } from "./modules/sellers/index";
-import {locationRouter} from "./modules/location/index";
+import { locationRouter } from "./modules/location/index";
 
 const app = express();
 
@@ -45,7 +45,7 @@ app.use(helmet());
 app.use(
   cors({
     origin: "http://localhost:3000",
-    credentials: true,  
+    credentials: true,
   }),
 );
 
@@ -80,6 +80,7 @@ app.use("/api/v1/vegetables", vegetableRouter);
 app.use("/api/v1/seller/inventory", dailyInventoryRouter);
 app.use("/api/v1/sellers", sellersRouter);
 app.use("/api/v1/locations", locationRouter);
+
 /**
  * -----------------------
  * 404 Middleware
