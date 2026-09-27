@@ -29,6 +29,7 @@ import { JWT_PURPOSE } from "../../services/jwt/jwt.constants";
 import {
   AuthResponse,
   LoginDto,
+  Msg91LoginInput,
   RegisterDto,
   VerifyOtpDto,
 } from "./auth.types";
@@ -40,6 +41,8 @@ import { sellerRepository } from "../seller/seller.repository";
 import { mapAuthUserResponse, mapUserProfileResponse } from "./auth.mapper";
 import { User } from "../users/user.model";
 import { LocationWithIds } from "../location/location.types";
+import { verifyMsg91AccessToken } from "./providers/msg91.provider";
+import { normalizeIndianMobile } from "../../utils/normalizedIndianMobileNumber";
 
 class AuthService {
   async registerSendOtp(mobileNumber: string) {
@@ -49,21 +52,6 @@ class AuthService {
         409,
         "User already exist with provided mobile number.",
       );
-    }
-    const hasActiveOtp = otpService.hasActiveOtp(mobileNumber);
-    if (hasActiveOtp) {
-      throw new ApiError(429, AUTH_MESSAGES.OTP_ALREADY_SENT);
-    }
-
-    const otp = await otpService.generateOtp(mobileNumber);
-    //TODO: Send the OTP to the user's mobile number via SMS or other means.
-    try {
-      await smsService.sendOtp(mobileNumber, otp);
-    } catch {
-      // SMS delivery failed.
-      // Remove the generated OTP so the user can request a new one.
-      otpService.deleteOtp(mobileNumber);
-      throw new ApiError(500, AUTH_MESSAGES.OTP_SEND_FAILED);
     }
   }
 
@@ -75,41 +63,27 @@ class AuthService {
         "User doesn't exist with provided mobile number. Create an account.",
       );
     }
-    const hasActiveOtp = otpService.hasActiveOtp(mobileNumber);
-    if (hasActiveOtp) {
-      throw new ApiError(429, AUTH_MESSAGES.OTP_ALREADY_SENT);
-    }
-
-    const otp = await otpService.generateOtp(mobileNumber);
-    //TODO: Send the OTP to the user's mobile number via SMS or other means.
-    try {
-      await smsService.sendOtp(mobileNumber, otp);
-    } catch {
-      // SMS delivery failed.
-      // Remove the generated OTP so the user can request a new one.
-      otpService.deleteOtp(mobileNumber);
-      throw new ApiError(500, AUTH_MESSAGES.OTP_SEND_FAILED);
-    }
   }
 
-  async verifyOtp(
+  async verifyMsg91Otp(
     dto: VerifyOtpDto,
   ): Promise<{ mobileNumber: string; registrationToken: string | null }> {
-    const { mobileNumber, otp } = dto;
+    const { msgAccessToken } = dto;
 
-    const isVerified = await otpService.verifyOtp(mobileNumber, otp);
+    const result = await verifyMsg91AccessToken(msgAccessToken);
 
-    if (!isVerified) {
-      throw new ApiError(400, AUTH_MESSAGES.OTP_INVALID);
+    const identifier = result.message;
+
+    if (!identifier || typeof identifier !== "string") {
+      throw new ApiError(401, "Unable to identify verified mobile number.");
     }
+
+    const mobileNumber = normalizeIndianMobile(identifier);
 
     const exists = await userRepository.existsByPhone(mobileNumber);
 
     if (exists) {
-      return {
-        mobileNumber,
-        registrationToken: null,
-      };
+      throw new ApiError(400, "User already exist.");
     }
 
     const registrationToken = jwtService.generateRegistrationToken({
@@ -246,7 +220,7 @@ class AuthService {
           id: existingDistrict!._id.toString(),
           name: existingDistrict!.name,
         },
-        pincode: user.location.pincode
+        pincode: user.location.pincode,
       };
     }
 
@@ -287,6 +261,51 @@ class AuthService {
       accountType: user.accountType,
       purpose: JWT_PURPOSE.ACCESS,
     });
+  }
+
+  async loginWithMsg91({ msgAccessToken }: { msgAccessToken: string }) {
+    const result = await verifyMsg91AccessToken(msgAccessToken);
+
+    const identifier = result.message;
+
+    if (!identifier || typeof identifier !== "string") {
+      throw new ApiError(401, "Unable to identify verified mobile number.");
+    }
+
+    const mobileNumber = normalizeIndianMobile(identifier);
+
+    const user = await User.findOne({
+      mobileNumber,
+    });
+
+    if (!user) {
+      throw new ApiError(404, "User doesn't exist.");
+    }
+
+    if (!user.isPhoneVerified) {
+      throw new ApiError(403, "Phone number is not verified.");
+    }
+
+    if (user.status === USER_STATUS.SUSPENDED) {
+      throw new ApiError(403, "Your account has been suspended.");
+    }
+
+    if (user.status === USER_STATUS.BLOCKED) {
+      throw new ApiError(403, "Your account has been blocked.");
+    }
+
+    await userRepository.updateLastLogin(user._id);
+
+    const { accessToken, refreshToken } = jwtService.generateAuthTokens({
+      userId: user._id.toString(),
+      accountType: user.accountType,
+    });
+
+    return {
+      user: mapAuthUserResponse(user),
+      accessToken,
+      refreshToken,
+    };
   }
 }
 

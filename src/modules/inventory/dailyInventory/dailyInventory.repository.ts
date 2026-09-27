@@ -24,7 +24,7 @@ class DailyInventoryRepository {
         "items.vegetableId": PopulatedVegetable;
       }>({
         path: "items.vegetableId",
-        select: "name",
+        select: "name imageUrl",
       })
       .lean()
       .exec();

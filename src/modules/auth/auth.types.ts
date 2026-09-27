@@ -3,8 +3,7 @@ import { UserDocument, UserStatus } from "../users/user.types";
 import { SupportedLanguage, UserAccountType } from "../users/user.types";
 
 export interface VerifyOtpDto {
-  mobileNumber: string;
-  otp: string;
+  msgAccessToken: string;
 }
 
 export interface RegisterDto {
@@ -66,4 +65,8 @@ export interface UserProfileResponse extends UserWithLocationIdsResponse {
     reviewedAt?: Date | null;
     businessType: string;
   } | null;
+}
+
+export interface Msg91LoginInput {
+  accessToken: string;
 }

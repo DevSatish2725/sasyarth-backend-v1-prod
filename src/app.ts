@@ -44,7 +44,10 @@ app.use(helmet());
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: [
+      "http://localhost:3000",
+      "https://sasyarth-frontend-prod.vercel.app",
+    ],
     credentials: true,
   }),
 );

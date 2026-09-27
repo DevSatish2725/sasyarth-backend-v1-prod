@@ -20,6 +20,7 @@ import { AUTH_MESSAGES } from "./auth.constants.js";
 import { extractBearerToken } from "../../utils/extractBearerToken.js";
 import { env } from "../../config/env";
 import { USER_MESSAGES } from "../users/user.constants.js";
+import { ApiError } from "../../utils/ApiError.js";
 
 class AuthController {
   registerSendOtp = catchAsync(async (req, res) => {
@@ -33,7 +34,7 @@ class AuthController {
     sendResponse(res, options);
   });
 
-   loginSendOtp = catchAsync(async (req, res) => {
+  loginSendOtp = catchAsync(async (req, res) => {
     await authService.loginSendOtp(req.body.mobileNumber);
     const options = {
       statusCode: 200,
@@ -44,8 +45,11 @@ class AuthController {
     sendResponse(res, options);
   });
 
-  verifyOtp = catchAsync(async (req, res) => {
-    const data = await authService.verifyOtp(req.body);
+  verifyMsg91Otp = catchAsync(async (req, res) => {
+    if (!req.body.msgAccessToken) {
+      throw new ApiError(400, "MSG91 access token is required.");
+    }
+    const data = await authService.verifyMsg91Otp(req.body);
 
     sendResponse(res, {
       statusCode: 200,
@@ -130,6 +134,31 @@ class AuthController {
     sendResponse(res, {
       statusCode: 200,
       message: "Logged out successfully.",
+    });
+  });
+
+  loginWithMsg91 = catchAsync(async (req, res) => {
+    const { msgAccessToken } = req.body;
+
+    if (!msgAccessToken) {
+      throw new ApiError(400, "MSG91 access token is required.");
+    }
+
+    const result = await authService.loginWithMsg91({
+      msgAccessToken,
+    });
+
+    res.cookie("refreshToken", result.refreshToken, {
+      httpOnly: true,
+      secure: env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    sendResponse(res, {
+      statusCode: 200,
+      data: result,
+      message: "Logged in successfully.",
     });
   });
 }

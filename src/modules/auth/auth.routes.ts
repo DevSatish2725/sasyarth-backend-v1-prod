@@ -63,9 +63,8 @@ authRouter.post(
 );
 
 authRouter.post(
-  "/verify-otp",
-  validateRequest(verifyOtpSchema),
-  authController.verifyOtp,
+  "/msg91/verify/register",
+  authController.verifyMsg91Otp,
 );
 
 authRouter.post(
@@ -74,7 +73,11 @@ authRouter.post(
   authController.register,
 );
 
-authRouter.post("/login", validateRequest(verifyOtpSchema), authController.login);
+authRouter.post(
+  "/login",
+  validateRequest(verifyOtpSchema),
+  authController.login,
+);
 
 authRouter.get("/me", requireAuth, authController.me);
 
@@ -82,5 +85,6 @@ authRouter.post("/refresh-token", authController.refreshToken);
 
 authRouter.post("/logout", authController.logout);
 
+authRouter.post("/msg91/verify/login", authController.loginWithMsg91);
 
 export default authRouter;
