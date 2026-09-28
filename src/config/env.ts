@@ -35,10 +35,6 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32),
 
   JWT_PASSWORD_RESET_SECRET: z.string().min(32),
-
-  ADMIN_NAME: z.string().min(1),
-  ADMIN_MOBILE_NUMBER: z.string().min(10).max(15),
-  ADMIN_PASSWORD: z.string().min(8),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

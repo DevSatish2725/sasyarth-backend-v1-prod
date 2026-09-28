@@ -1,6 +1,5 @@
 import { connectDatabase } from "../config/database";
 import { logger } from "../config/logger";
-import { seedAdmin } from "./admin.seeds";
 // import { seedLocations } from "./locations.seeds";
 import { seedVegetables } from "./vegetables.seed";
 
