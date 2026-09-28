@@ -4,7 +4,7 @@ import { AdminSellerDto, AdminSellerListDto } from "./admin.dto";
 export const toAdminSellerListDto = (
   seller: SellerWithPersonalDetails,
 ): AdminSellerListDto => ({
-  id: seller._id,
+  id: seller._id.toString(),
   personalDetails: seller.userId,
   businessType: seller.businessType,
   verificationStatus: seller.verificationStatus,

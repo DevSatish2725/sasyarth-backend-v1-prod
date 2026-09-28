@@ -35,7 +35,7 @@ export type SellerWithUserEntity = {
       district: string;
       village: string;
       pincode: string;
-    }
+    };
   };
 };
 
@@ -92,4 +92,19 @@ export interface PopulatedSellerUser {
 export type SellerWithPersonalDetails = Omit<SellerEntity, "userId"> & {
   _id: string;
   userId: PopulatedSellerUser;
+};
+
+export type SellerAdminDetails = Omit<SellerEntity, "userId"> & {
+  _id: string;
+  userId: {
+    _id: string;
+    fullName: string;
+    mobileNumber: string;
+    location: {
+      state: string;
+      district: string;
+      village: string;
+      pincode: string;
+    };
+  };
 };
