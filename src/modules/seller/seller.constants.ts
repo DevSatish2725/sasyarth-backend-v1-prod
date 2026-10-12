@@ -41,5 +41,5 @@ export const SELLER_STATUS = {
 } as const;
 
 export const DEFAULT_RADIUS_KM = 20;
-export const DEFAULT_LIMIT = 20;
+export const DEFAULT_LIMIT = 1;
 export const MAX_LIMIT = 50;

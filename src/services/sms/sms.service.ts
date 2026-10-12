@@ -19,7 +19,6 @@
 
 class SmsService {
   async sendOtp(mobileNumber: string, otp: string): Promise<void> {
-    console.log(`[SMS] OTP ${otp} sent to ${mobileNumber}`);
   }
 }
 

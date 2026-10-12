@@ -143,14 +143,15 @@ class SellerController {
       district,
       village,
       vegetableIds,
+      cursor,
     } = req.query;
 
     const params: GetSellerListingParams = {
       latitude: latitude ? Number(latitude) : undefined,
       longitude: longitude ? Number(longitude) : undefined,
-      userId: req.user?.userId ?? ""
+      userId: req.user?.userId ?? "",
+      cursor: typeof cursor === "string" ? cursor : undefined,
     };
-
 
     /**
      * Search scope
@@ -213,6 +214,7 @@ class SellerController {
 
       meta: {
         matchingMode: result.matchingMode,
+        nextCursor: result.nextCursor,
       },
     });
   });
@@ -220,7 +222,10 @@ class SellerController {
   getCallSellerDetails = catchAsync(async (req, res) => {
     const { sellerId } = req.params;
     const buyerId = req.user?.userId;
-    const result = await sellerService.getCallSellerDetails(sellerId as string, buyerId as string);
+    const result = await sellerService.getCallSellerDetails(
+      sellerId as string,
+      buyerId as string,
+    );
     sendResponse(res, {
       statusCode: 200,
       data: result,

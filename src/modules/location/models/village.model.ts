@@ -1,5 +1,23 @@
 import { Schema, model } from "mongoose";
-import { GeoLocationSchema } from "../../../shared/schemas/geolocation.schema";
+
+const DisplayNamesSchema = new Schema(
+  {
+    en: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    hi: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+  },
+  {
+    _id: false,
+  },
+);
 
 export const VillageSchema = new Schema(
   {
@@ -23,17 +41,24 @@ export const VillageSchema = new Schema(
       trim: true,
     },
 
-  searchName: {
-      type: String,
+    displayNames: {
+      type: DisplayNamesSchema,
       required: true,
-      trim: true,
-      lowercase: true,
     },
 
-    pincode: {
-      type: String,
-      required: true,
-      trim: true,
+    searchNames: {
+      en: {
+        type: String,
+        required: true,
+        lowercase: true,
+        trim: true,
+      },
+
+      hi: {
+        type: String,
+        required: true,
+        trim: true,
+      },
     },
 
     isActive: {

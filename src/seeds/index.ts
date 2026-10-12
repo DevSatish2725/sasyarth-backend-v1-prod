@@ -1,7 +1,7 @@
 import { connectDatabase } from "../config/database";
 import { logger } from "../config/logger";
-// import { seedLocations } from "./locations.seeds";
-import { seedVegetables } from "./vegetables.seed";
+import { seedLocations } from "./locations.seeds";
+// import { seedVegetables } from "./vegetables.seed";
 
 const run = async () => {
   try {
@@ -12,8 +12,8 @@ const run = async () => {
     logger.info("Database connected successfully.");
 
     // await seedAdmin();
-    await seedVegetables();
-    // await seedLocations();
+    // await seedVegetables();
+    await seedLocations();
 
     logger.info("Database seed completed successfully.");
 

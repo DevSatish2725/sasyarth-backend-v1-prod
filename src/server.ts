@@ -21,6 +21,7 @@ import app from "./app";
 import { env } from "./config/env";
 import { connectDatabase } from "./config/database";
 import { logger } from "./config/logger";
+import { startNotificationReminderJobs } from "./jobs/notificationReminder.job";
 
 /**
  * Starts the GreenBridge backend.
@@ -41,6 +42,7 @@ const startServer = async (): Promise<void> => {
       logger.info(
         `🚀 GreenBridge Server is running on http://localhost:${port}`,
       );
+      startNotificationReminderJobs();
     });
   } catch (error) {
     logger.fatal(error, "Failed to bootstrap application");

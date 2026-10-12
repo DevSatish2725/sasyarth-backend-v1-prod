@@ -60,23 +60,26 @@ export interface GetSellerListingParams {
   longitude?: number | undefined;
   radiusInKm?: number;
   limit?: number;
+  cursor?: string | undefined;
 }
 
 export interface BroadSellerPipelineParams {
-  scope: SellerSearchScope;
+  scope: "state" | "district" | "village";
+
   state: string;
   district?: string;
   village?: string;
-  normalizedVegetableIds?: Types.ObjectId[];
-  userId: string;
-  today: Date;
-  limit: number;
-}
-export interface SellerListingCursor {
-  distanceMeters: number;
-  sellerId: string;
-}
 
+  normalizedVegetableIds?: Types.ObjectId[];
+
+  today: Date;
+
+  userId: string;
+
+  limit: number;
+
+  cursor?: SellerListingCursor;
+}
 export interface PopulatedSellerUser {
   _id: string;
   fullName: string;
@@ -108,3 +111,64 @@ export type SellerAdminDetails = Omit<SellerEntity, "userId"> & {
     };
   };
 };
+
+export interface SellerListingCursor {
+  updatedAt: Date;
+  sellerId: Types.ObjectId;
+}
+
+export interface SellerCursorPayload {
+  updatedAt: string;
+  sellerId: string;
+}
+
+
+export interface PublicSellerPipelineParams {
+  normalizedVegetableIds?: Types.ObjectId[];
+  today: Date;
+  limit: number;
+  userId: string;
+  cursor?: SellerListingCursor;
+}
+
+export interface VillageSellerPipelineParams {
+  state: string;
+  district: string;
+  village: string;
+
+  normalizedVegetableIds?: Types.ObjectId[];
+
+  today: Date;
+
+  limit: number;
+
+  userId: string;
+
+  cursor?: SellerListingCursor;
+}
+
+export interface GeoSellerCursor {
+  distanceInMeters: number;
+  sellerId: Types.ObjectId;
+}
+
+export interface GeoSellerPipelineParams {
+  longitude: number;
+  latitude: number;
+  radiusInKm: number;
+
+  normalizedVegetableIds?: Types.ObjectId[];
+
+  today: Date;
+
+  limit: number;
+
+  userId: string;
+
+  cursor?: GeoSellerCursor;
+}
+
+export interface GeoSellerCursorPayload {
+  distanceInMeters: number;
+  sellerId: string;
+}

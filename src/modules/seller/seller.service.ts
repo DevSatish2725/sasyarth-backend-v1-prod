@@ -16,7 +16,10 @@ import {
 import { sellerRepository } from "./seller.repository";
 import { toCallSellerDetails, toSellerProfileDto } from "./seller.mapper";
 import {
+  GeoSellerCursor,
+  GeoSellerCursorPayload,
   GetSellerListingParams,
+  SellerCursorPayload,
   SellerListingCursor,
   SellerVerificationStatus,
 } from "./seller.types";
@@ -30,28 +33,68 @@ import { contactInteractionRepository } from "../contact-interaction/contactInte
 import { userRepository } from "../users/user.repository";
 
 class SellerService {
-  private encodeCursor(cursor: SellerListingCursor): string {
+  private encodeSellerCursor(cursor: SellerCursorPayload) {
     return Buffer.from(JSON.stringify(cursor)).toString("base64url");
   }
 
-  private decodeCursor(cursor: string): SellerListingCursor {
+  private decodeSellerCursor(cursor: string): SellerListingCursor {
     try {
       const decoded = JSON.parse(
-        Buffer.from(cursor, "base64url").toString("utf-8"),
-      );
+        Buffer.from(cursor, "base64url").toString("utf8"),
+      ) as SellerCursorPayload;
 
       if (
-        typeof decoded.distanceMeters !== "number" ||
-        typeof decoded.sellerId !== "string"
+        !decoded.updatedAt ||
+        !decoded.sellerId ||
+        !Types.ObjectId.isValid(decoded.sellerId)
       ) {
-        throw new ApiError(400, "Invalid cursor");
+        throw new Error();
       }
 
-      return decoded;
+      const updatedAt = new Date(decoded.updatedAt);
+
+      if (Number.isNaN(updatedAt.getTime())) {
+        throw new Error();
+      }
+
+      return {
+        updatedAt,
+
+        sellerId: new Types.ObjectId(decoded.sellerId),
+      };
     } catch {
-      throw new ApiError(400, "Invalid pagination cursor");
+      throw new ApiError(400, "Invalid cursor");
     }
   }
+
+  private encodeGeoSellerCursor(cursor: GeoSellerCursorPayload) {
+    return Buffer.from(JSON.stringify(cursor)).toString("base64url");
+  }
+
+  private decodeGeoSellerCursor(cursor: string): GeoSellerCursor {
+    try {
+      const decoded = JSON.parse(
+        Buffer.from(cursor, "base64url").toString("utf8"),
+      ) as GeoSellerCursorPayload;
+
+      if (
+        !Number.isFinite(decoded.distanceInMeters) ||
+        decoded.distanceInMeters < 0 ||
+        !Types.ObjectId.isValid(decoded.sellerId)
+      ) {
+        throw new Error();
+      }
+
+      return {
+        distanceInMeters: decoded.distanceInMeters,
+
+        sellerId: new Types.ObjectId(decoded.sellerId),
+      };
+    } catch {
+      throw new ApiError(400, "Invalid cursor");
+    }
+  }
+
   async apply(userId: string, payload: applySellerWithLocationDto) {
     const seller = await sellerRepository.findByUserId(userId);
     if (seller) {
@@ -94,6 +137,9 @@ class SellerService {
         state: state.name,
         district: district.name,
         village: village.name,
+        villageDisplayNames: village.displayNames,
+        districtDisplayNames: district.displayNames,
+        stateDisplayNames: state.displayNames,
         pincode,
       },
     });
@@ -266,6 +312,7 @@ class SellerService {
     longitude,
     radiusInKm = DEFAULT_RADIUS_KM,
     limit = DEFAULT_LIMIT,
+    cursor,
   }: GetSellerListingParams) {
     if (!scope && (state || district || village)) {
       throw new ApiError(400, "Scope is required for location search.");
@@ -311,6 +358,7 @@ class SellerService {
         if (!district) {
           throw new ApiError(400, "District is required for village search");
         }
+
         const stateInfo = await locationRepository.findStateByName(
           state as string,
         );
@@ -383,33 +431,70 @@ class SellerService {
         }
       }
 
+      const normalizedCursor = cursor
+        ? this.decodeSellerCursor(cursor)
+        : undefined;
       const pipeline = sellerPipeline.getBroadSellerPipeline({
         scope,
+
         state: state.trim(),
+
         ...(district?.trim()
           ? {
               district: district.trim(),
             }
           : {}),
+
         ...(village?.trim()
           ? {
               village: village.trim(),
             }
           : {}),
+
         ...(normalizedVegetableIds
-          ? { normalizedVegetableIds: normalizedVegetableIds }
+          ? {
+              normalizedVegetableIds,
+            }
           : {}),
+
+        ...(normalizedCursor
+          ? {
+              cursor: normalizedCursor,
+            }
+          : {}),
+
         userId,
+
         today,
+
         limit: safeLimit,
       });
 
       const sellers = await User.aggregate(pipeline);
 
+      const hasNextPage = sellers.length > safeLimit;
+
+      const pageData = hasNextPage ? sellers.slice(0, safeLimit) : sellers;
+
+      const lastSeller = pageData[pageData.length - 1];
+
+      const nextCursor =
+        hasNextPage && lastSeller?.inventoryUpdatedAt && lastSeller?.sellerId
+          ? this.encodeSellerCursor({
+              updatedAt: new Date(lastSeller.inventoryUpdatedAt).toISOString(),
+
+              sellerId: lastSeller.sellerId.toString(),
+            })
+          : null;
+
+      const data = pageData.map(({ inventoryUpdatedAt, ...seller }) => seller);
+
       return {
-        data: sellers,
+        data,
 
         matchingMode: scope.toUpperCase(),
+
+        nextCursor,
       };
     }
 
@@ -421,20 +506,53 @@ class SellerService {
      */
 
     if (!userId) {
+      const normalizedCursor = cursor
+        ? this.decodeSellerCursor(cursor)
+        : undefined;
+
       const pipeline = sellerPipeline.getPublicSellerPipeline({
         today,
+
         ...(normalizedVegetableIds
-          ? { normalizedVegetableIds: normalizedVegetableIds }
+          ? {
+              normalizedVegetableIds,
+            }
           : {}),
+
+        ...(normalizedCursor
+          ? {
+              cursor: normalizedCursor,
+            }
+          : {}),
+
         limit: safeLimit,
+
         userId,
       });
 
       const sellers = await User.aggregate(pipeline);
 
+      const hasNextPage = sellers.length > safeLimit;
+
+      const pageData = hasNextPage ? sellers.slice(0, safeLimit) : sellers;
+
+      const lastSeller = pageData[pageData.length - 1];
+
+      const nextCursor =
+        hasNextPage && lastSeller?.inventoryUpdatedAt && lastSeller?.sellerId
+          ? this.encodeSellerCursor({
+              updatedAt: new Date(lastSeller.inventoryUpdatedAt).toISOString(),
+
+              sellerId: lastSeller.sellerId.toString(),
+            })
+          : null;
+
+      const data = pageData.map(({ inventoryUpdatedAt, ...seller }) => seller);
+
       return {
-        data: sellers,
+        data,
         matchingMode: "PUBLIC",
+        nextCursor,
       };
     }
 
@@ -464,34 +582,80 @@ class SellerService {
       Number.isFinite(longitude) &&
       Number.isFinite(latitude)
     ) {
+      const normalizedGeoCursor = cursor
+        ? this.decodeGeoSellerCursor(cursor)
+        : undefined;
+
       const pipeline = sellerPipeline.getGeoSellerPipeline({
         longitude,
         latitude,
         radiusInKm,
+
         ...(normalizedVegetableIds
-          ? { normalizedVegetableIds: normalizedVegetableIds }
+          ? {
+              normalizedVegetableIds,
+            }
           : {}),
-        userId,
+
+        ...(normalizedGeoCursor
+          ? {
+              cursor: normalizedGeoCursor,
+            }
+          : {}),
+
         today,
+
         limit: safeLimit,
+
+        userId,
       });
 
       const sellers = await User.aggregate(pipeline);
 
+      const hasNextPage = sellers.length > safeLimit;
+
+      const pageData = hasNextPage ? sellers.slice(0, safeLimit) : sellers;
+
+      const lastSeller = pageData[pageData.length - 1];
+
+      const nextCursor =
+        hasNextPage &&
+        lastSeller?.distanceInMeters !== undefined &&
+        lastSeller?.sellerId
+          ? this.encodeGeoSellerCursor({
+              distanceInMeters: lastSeller.distanceInMeters,
+
+              sellerId: lastSeller.sellerId.toString(),
+            })
+          : null;
+
+      const data = pageData.map(({ distanceInMeters, ...seller }) => seller);
+
       return {
-        data: sellers,
+        data,
         matchingMode: "NEARBY",
+        nextCursor,
       };
     }
 
     /**
      * Last fallback.
      */
+
+    const normalizedCursor = cursor
+      ? this.decodeSellerCursor(cursor)
+      : undefined;
     const pipeline = sellerPipeline.getPublicSellerPipeline({
       ...(normalizedVegetableIds
         ? { normalizedVegetableIds: normalizedVegetableIds }
         : {}),
       today,
+      ...(normalizedCursor
+        ? {
+            cursor: normalizedCursor,
+          }
+        : {}),
+
       limit: safeLimit,
       userId,
     });

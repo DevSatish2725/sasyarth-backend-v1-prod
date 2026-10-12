@@ -20,12 +20,12 @@ const applyBodySchema = z.object({
   documents: z
     .array(verificationDocumentSchema)
     .min(1, "At least 1 document is required for verification."),
-  preferredLanguage: z.enum(
-    Object.values(SUPPORTED_LANGUAGES) as [
-      SupportedLanguage,
-      ...SupportedLanguage[],
-    ],
-  ),
+  // preferredLanguage: z.enum(
+  //   Object.values(SUPPORTED_LANGUAGES) as [
+  //     SupportedLanguage,
+  //     ...SupportedLanguage[],
+  //   ],
+  // ),
   location: z.object({
     villageId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid village id."),
     districtId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid district id."),

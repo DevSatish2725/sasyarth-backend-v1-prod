@@ -1,5 +1,24 @@
 import { Schema } from "mongoose";
 
+const DisplayNamesSchema = new Schema(
+  {
+    en: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    hi: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+  },
+  {
+    _id: false,
+  },
+);
+
 export const LocationSchema = new Schema(
   {
     village: {
@@ -18,6 +37,19 @@ export const LocationSchema = new Schema(
       type: String,
       required: true,
       trim: true,
+    },
+
+    villageDisplayNames: {
+      type: DisplayNamesSchema,
+      required: true,
+    },
+    districtDisplayNames: {
+      type: DisplayNamesSchema,
+      required: true,
+    },
+    stateDisplayNames: {
+      type: DisplayNamesSchema,
+      required: true,
     },
 
     pincode: {

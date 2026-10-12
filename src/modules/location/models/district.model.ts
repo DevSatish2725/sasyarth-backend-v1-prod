@@ -1,6 +1,25 @@
 import { Schema, model } from "mongoose";
 import { DistrictEntity } from "../location.types";
 
+const DisplayNamesSchema = new Schema(
+  {
+    en: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    hi: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+  },
+  {
+    _id: false,
+  },
+);
+
 export const DistrictSchema = new Schema(
   {
     lgdCode: {
@@ -22,13 +41,10 @@ export const DistrictSchema = new Schema(
       required: true,
       trim: true,
     },
-    searchName: {
-      type: String,
+    displayNames: {
+      type: DisplayNamesSchema,
       required: true,
-      trim: true,
-      lowercase: true,
     },
-
     isActive: {
       type: Boolean,
       default: true,

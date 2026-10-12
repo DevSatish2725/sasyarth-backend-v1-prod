@@ -25,6 +25,9 @@ export interface UpdateLocationPayload {
     village: string;
     district: string;
     state: string;
+    villageDisplayNames: { en: string; hi: string; }
+    districtDisplayNames: { en: string; hi: string; }
+    stateDisplayNames: { en: string; hi: string; }
     pincode: string;
   };
 

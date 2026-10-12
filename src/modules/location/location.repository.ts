@@ -7,24 +7,27 @@ import { SearchDistrictParams, SearchVillageParams } from "./location.types";
 
 class LocationRepository {
   findAllStates() {
-    return State.find().select("_id name").lean().exec();
+    return State.find().select("_id name displayNames").lean().exec();
   }
   findStateById(id: Types.ObjectId) {
-    return State.findById(id).select("_id name").lean().exec();
+    return State.findById(id).select("_id name displayNames").lean().exec();
   }
   findStateByName(name: string) {
-    return State.findOne({ name }).select("_id name").lean().exec();
+    return State.findOne({ name })
+      .select("_id name displayNames")
+      .lean()
+      .exec();
   }
 
   findDistrictById(id: Types.ObjectId) {
-    return District.findById(id).select("_id name").lean().exec();
+    return District.findById(id).select("_id name displayNames").lean().exec();
   }
   findDistrictByNameAndStateId(name: string, stateId: Types.ObjectId) {
     return District.findOne({
       name,
       stateId,
     })
-      .select("_id name")
+      .select("_id name displayNames")
       .lean()
       .exec();
   }
@@ -33,13 +36,13 @@ class LocationRepository {
     return District.find({
       stateId,
     })
-      .select("_id name")
+      .select("_id name displayNames")
       .lean()
       .exec();
   }
 
   findVillageById(id: Types.ObjectId) {
-    return Village.findById(id).select("_id name").lean().exec();
+    return Village.findById(id).select("_id name displayNames").lean().exec();
   }
   findVillageByNameAndDistrictId(name: string, districtId: Types.ObjectId) {
     return Village.findOne({
@@ -66,25 +69,36 @@ class LocationRepository {
     };
 
     if (search?.trim()) {
-      const normalizedSearch = search.trim().toLowerCase();
+      const normalizedSearch = search.trim();
 
       const safeSearch = escapeRegex(normalizedSearch);
 
-      filter.searchName = {
-        $regex: `^${safeSearch}`,
-      };
+      filter.$or = [
+        {
+          "displayNames.en": {
+            $regex: `^${safeSearch}`,
+            $options: "i",
+          },
+        },
+
+        {
+          "displayNames.hi": {
+            $regex: `^${safeSearch}`,
+          },
+        },
+      ];
     }
 
     return District.find(filter)
       .select({
         _id: 1,
         name: 1,
+        displayNames: 1,
       })
       .sort({
-        searchName: 1,
+        "displayNames.en": 1,
       })
       .limit(limit)
-      .select("_id name")
       .lean()
       .exec();
   }
@@ -98,18 +112,30 @@ class LocationRepository {
 
       const safeSearch = escapeRegex(normalizedSearch);
 
-      filter.searchName = {
-        $regex: `^${safeSearch}`,
-      };
+      filter.$or = [
+        {
+          "displayNames.en": {
+            $regex: `^${safeSearch}`,
+            $options: "i",
+          },
+        },
+
+        {
+          "displayNames.hi": {
+            $regex: `^${safeSearch}`,
+          },
+        },
+      ];
     }
 
     return Village.find(filter)
       .select({
         _id: 1,
         name: 1,
+        displayNames: 1,
       })
       .sort({
-        searchName: 1,
+        "displayNames.en": 1,
       })
       .limit(limit)
       .select("_id name")

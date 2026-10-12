@@ -47,14 +47,26 @@ export interface LocationWithIds {
 export interface State {
   _id: Types.ObjectId;
   name: string;
+  displayNames: {
+    en: string;
+    hi: string;
+  };
 }
 
 export interface District {
   _id: Types.ObjectId;
   name: string;
+  displayNames: {
+    en: string;
+    hi: string;
+  };
 }
 
 export interface Village {
   _id: Types.ObjectId;
   name: string;
+  displayNames: {
+    en: string;
+    hi: string;
+  };
 }

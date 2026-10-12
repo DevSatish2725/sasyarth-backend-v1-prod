@@ -45,7 +45,7 @@
     "removeComments": false
   },
 
-  "include": ["src", "src/jobs/negotiationExpiry.job.ts"],
+  "include": ["src", "src/jobs/negotiationExpiry.job.ts", "seeds"],
 
   "exclude": ["node_modules", "dist"]
 }

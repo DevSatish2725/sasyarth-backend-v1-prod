@@ -21,7 +21,7 @@ export const UserSchema = new Schema(
     mobileNumber: {
       type: String,
       required: true,
-      select: false
+      select: false,
     },
     accountType: {
       type: String,

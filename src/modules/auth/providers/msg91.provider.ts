@@ -58,8 +58,6 @@ export async function verifyMsg91AccessToken(
       },
     );
 
-    console.log("MSG91 verified response:", response.data);
-
     if (response.data.type === "error" || response.data.hasError) {
       throw new ApiError(
         401,
