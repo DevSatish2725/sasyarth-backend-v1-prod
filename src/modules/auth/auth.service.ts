@@ -40,9 +40,10 @@ import { logger } from "../../config/logger";
 import { sellerRepository } from "../seller/seller.repository";
 import { mapAuthUserResponse, mapUserProfileResponse } from "./auth.mapper";
 import { User } from "../users/user.model";
-import { LocationWithIds } from "../location/location.types";
+import { LocationDetails } from "../location/location.types";
 import { verifyMsg91AccessToken } from "./providers/msg91.provider";
 import { normalizeIndianMobile } from "../../utils/normalizedIndianMobileNumber";
+import { Types } from "mongoose";
 
 class AuthService {
   async registerSendOtp(mobileNumber: string) {
@@ -190,41 +191,48 @@ class AuthService {
 
     const sellerProfile = await sellerRepository.findByUserId(userId);
 
-    let locationWithIds: LocationWithIds | null = null;
+    let locationDetails: LocationDetails | null = null;
 
-    if (user?.location) {
-      const existingState = await locationRepository.findStateByName(
-        user.location.state,
-      );
+    if (sellerProfile && user.location) {
+      const [state, district, block, village, mauja, habitation] =
+        await Promise.all([
+          locationRepository.findStateById(user.location.stateId),
+          locationRepository.findDistrictById(user.location.districtId),
+          locationRepository.findBlockById(user.location.blockId),
+          locationRepository.findVillageById(user.location.villageId),
+          locationRepository.findMaujaById(user.location.maujaId),
+          locationRepository.findHabitationById(user.location.habitationId),
+        ]);
 
-      const existingDistrict =
-        await locationRepository.findDistrictByNameAndStateId(
-          user.location.district,
-          existingState!._id,
-        );
-      const existingVillage =
-        await locationRepository.findVillageByNameAndDistrictId(
-          user.location.village,
-          existingDistrict!._id,
-        );
-      locationWithIds = {
-        village: {
-          id: existingVillage!._id.toString(),
-          name: existingVillage!.name,
-        },
-        state: {
-          id: existingState!._id.toString(),
-          name: existingState!.name,
-        },
+      locationDetails = {
+        stateId: state!._id.toString(),
+        state: { en: state!.displayNames.en, hi: state!.displayNames.hi },
+
+        districtId: district!._id.toString(),
         district: {
-          id: existingDistrict!._id.toString(),
-          name: existingDistrict!.name,
+          en: district!.displayNames.en,
+          hi: district!.displayNames.hi,
         },
+
+        blockId: block!._id.toString(),
+        block: { en: block!.displayNames.en, hi: block!.displayNames.hi },
+
+        villageId: village!._id.toString(),
+        village: { en: village!.displayNames.en, hi: village!.displayNames.hi },
+        maujaId: mauja!._id.toString(),
+        mauja: { en: mauja!.displayNames.en, hi: mauja!.displayNames.hi },
+
+        habitationId: habitation!._id.toString(),
+        habitation: {
+          en: habitation!.displayNames.en,
+          hi: habitation!.displayNames.hi,
+        },
+
         pincode: user.location.pincode,
       };
     }
 
-    return mapUserProfileResponse(user, sellerProfile, locationWithIds);
+    return mapUserProfileResponse(user, sellerProfile, locationDetails);
   }
 
   async refreshToken(refreshToken?: string): Promise<string> {

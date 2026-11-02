@@ -1,16 +1,23 @@
+import { Types } from "mongoose";
 import { SupportedLanguage, UserAccountType } from "./user.types";
 
 export interface LocationPayload {
-  villageId: string;
-  districtId: string;
   stateId: string;
+  districtId: string;
+  blockId: string;
+  villageId: string;
+  maujaId: string;
+  habitationId: string;
   pincode: string;
 }
 
 export interface Location {
-  state: string;
-  district: string;
-  village: string;
+  stateId: Types.ObjectId | null;
+  districtId: Types.ObjectId | null;
+  blockId: Types.ObjectId | null;
+  villageId: Types.ObjectId | null;
+  maujaId: Types.ObjectId | null;
+  habitationId: Types.ObjectId | null;
   pincode: string;
 }
 

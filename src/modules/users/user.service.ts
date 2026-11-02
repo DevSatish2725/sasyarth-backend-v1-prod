@@ -1,5 +1,9 @@
 import { ApiError } from "../../utils/ApiError";
-import { UpdateProfileDto, UpdateProfilePayloadDto, UserProfileDto } from "./user.dto";
+import {
+  UpdateProfileDto,
+  UpdateProfilePayloadDto,
+  UserProfileDto,
+} from "./user.dto";
 import { userRepository } from "./user.repository";
 import { toUserProfileDto } from "./user.mapper";
 import { sellerRepository } from "../seller/seller.repository";
@@ -21,55 +25,99 @@ class UserService {
       throw new ApiError(400, "Location is not allowed.");
     }
 
-    const location = {
-      state: "",
-      district: "",
-      village: "",
+    const location: {
+      stateId: Types.ObjectId | null;
+      districtId: Types.ObjectId | null;
+      villageId: Types.ObjectId | null;
+      habitationId: Types.ObjectId | null;
+      maujaId: Types.ObjectId | null;
+      blockId: Types.ObjectId | null;
+      pincode: string;
+    } = {
+      stateId: null,
+      districtId: null,
+      villageId: null,
+      habitationId: null,
+      maujaId: null,
+      blockId: null,
       pincode: "",
     };
 
     if (payload?.location && sellerProfile && user?.location) {
-      const { stateId, districtId, villageId, pincode } = payload.location;
+      const {
+        stateId,
+        districtId,
+        villageId,
+        habitationId,
+        maujaId,
+        blockId,
+        pincode,
+      } = payload.location;
 
-      const existingState = await locationRepository.findStateByName(
-        user.location.state,
-      );
+      const [
+        existingState,
+        existingDistrict,
+        existingBlock,
+        existingVillage,
+        existingMauja,
+        existingHabitation,
+      ] = await Promise.all([
+        locationRepository.findStateById(user.location.stateId),
+        locationRepository.findDistrictById(user.location.districtId),
+        locationRepository.findBlockById(user.location.blockId),
+        locationRepository.findVillageById(user.location.villageId),
+        locationRepository.findMaujaById(user.location.maujaId),
+        locationRepository.findHabitationById(user.location.habitationId),
+      ]);
 
-      const existingDistrict =
-        await locationRepository.findDistrictByNameAndStateId(
-          user.location.district,
-          existingState!._id,
-        );
-      const existingVillage =
-        await locationRepository.findVillageByNameAndDistrictId(
-          user.location.village,
-          existingDistrict!._id,
-        );
+      const [
+        newState,
+        newDistrict,
+        newBlock,
+        newVillage,
+        newMauja,
+        newHabitation,
+      ] = await Promise.all([
+        locationRepository.findStateById(new Types.ObjectId(stateId)),
+        locationRepository.findDistrictById(new Types.ObjectId(districtId)),
+        locationRepository.findBlockById(new Types.ObjectId(blockId)),
+        locationRepository.findVillageById(new Types.ObjectId(villageId)),
+        locationRepository.findMaujaById(new Types.ObjectId(maujaId)),
+        locationRepository.findHabitationById(new Types.ObjectId(habitationId)),
+      ]);
 
-      const newState = await locationRepository.findStateById(
-        new Types.ObjectId(stateId),
-      );
       if (!newState) {
-        throw new ApiError(404, "This state is not allowed.");
+        throw new ApiError(409, "Select valid state.");
       }
-      const newDistrict = await locationRepository.findDistrictById(
-        new Types.ObjectId(districtId),
-      );
+
       if (!newDistrict) {
-        throw new ApiError(404, "This district is not allowed.");
+        throw new ApiError(409, "Select valid district.");
       }
-      const newVillage = await locationRepository.findVillageById(
-        new Types.ObjectId(villageId),
-      );
+
+      if (!newBlock) {
+        throw new ApiError(409, "Select valid block.");
+      }
+
       if (!newVillage) {
-        throw new ApiError(404, "This village is not allowed.");
+        throw new ApiError(409, "Select valid village.");
+      }
+
+      if (!newMauja) {
+        throw new ApiError(409, "Select valid mauja.");
+      }
+
+      if (!newHabitation) {
+        throw new ApiError(409, "Select valid habitation.");
       }
 
       const hasLocationChanged =
         payload.location !== undefined &&
-        (payload.location.villageId !== existingVillage!._id.toString() ||
-          payload.location.districtId !== existingDistrict!._id.toString() ||
-          payload.location.stateId !== existingState!._id.toString() ||
+        (stateId !== existingState!._id.toString() ||
+          districtId !== existingDistrict!._id.toString() ||
+          blockId !== existingBlock!._id.toString() ||
+          villageId !== existingVillage!._id.toString() ||
+          maujaId !== existingMauja!._id.toString() ||
+          habitationId !== existingHabitation!._id.toString() ||
           payload.location.pincode !== user.location?.pincode);
 
       if (hasLocationChanged && user.geoLocation && !payload.geoLocation) {
@@ -85,9 +133,12 @@ class UserService {
         );
       }
 
-      location.state = newState.name;
-      location.district = newDistrict.name;
-      location.village = newVillage.name;
+      location.stateId = newState._id;
+      location.districtId = newDistrict._id;
+      location.blockId = newBlock._id;
+      location.villageId = newVillage._id;
+      location.maujaId = newMauja._id;
+      location.habitationId = newHabitation._id;
       location.pincode = pincode;
     }
 

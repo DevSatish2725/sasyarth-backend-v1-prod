@@ -18,9 +18,18 @@ export const updateProfileSchema = {
 
       location: z
         .object({
-          villageId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid village id."),
-          districtId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid district id."),
           stateId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid state id."),
+          districtId: z
+            .string()
+            .regex(/^[0-9a-fA-F]{24}$/, "Invalid district id."),
+          blockId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid block id."),
+          villageId: z
+            .string()
+            .regex(/^[0-9a-fA-F]{24}$/, "Invalid village id."),
+          maujaId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid mauja id."),
+          habitationId: z
+            .string()
+            .regex(/^[0-9a-fA-F]{24}$/, "Invalid habitation id."),
           pincode: z.string().regex(/^\d{6}$/),
         })
         .optional(),

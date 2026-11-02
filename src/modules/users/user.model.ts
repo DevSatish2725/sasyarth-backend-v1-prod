@@ -32,7 +32,7 @@ export const UserSchema = new Schema(
     preferredLanguage: {
       type: String,
       enum: Object.values(SUPPORTED_LANGUAGES),
-      default: SUPPORTED_LANGUAGES.ENGLISH,
+      default: SUPPORTED_LANGUAGES.HINDI,
     },
     location: {
       type: LocationSchema,

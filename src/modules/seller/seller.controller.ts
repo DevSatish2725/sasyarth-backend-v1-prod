@@ -1,12 +1,10 @@
 import { ApiError } from "../../utils/ApiError";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
-import { User } from "../users/user.model";
 import { SELLER_MESSAGES } from "./seller.constants";
 import { sellerService } from "./seller.service";
 import {
   GetSellerListingParams,
-  SellerSearchScope,
   SellerVerificationStatus,
 } from "./seller.types";
 class SellerController {
@@ -138,10 +136,12 @@ class SellerController {
       longitude,
       radiusInKm,
       limit,
-      scope,
-      state,
-      district,
-      village,
+      stateId,
+      districtId,
+      blockId,
+      villageId,
+      maujaId,
+      habitationId,
       vegetableIds,
       cursor,
     } = req.query;
@@ -149,32 +149,15 @@ class SellerController {
     const params: GetSellerListingParams = {
       latitude: latitude ? Number(latitude) : undefined,
       longitude: longitude ? Number(longitude) : undefined,
+      stateId: stateId ? stateId as string : undefined,
+      districtId: districtId ? districtId as string : undefined,
+      blockId: blockId ? blockId as string : undefined,
+      villageId: villageId ? villageId as string : undefined,
+      maujaId: maujaId ? maujaId as string : undefined,
+      habitationId: habitationId ? habitationId as string : undefined,
       userId: req.user?.userId ?? "",
       cursor: typeof cursor === "string" ? cursor : undefined,
     };
-
-    /**
-     * Search scope
-     */
-    if (typeof scope === "string") {
-      if (!["village", "district", "state"].includes(scope)) {
-        throw new ApiError(400, "Invalid seller search scope");
-      }
-
-      params.scope = scope as SellerSearchScope;
-    }
-
-    if (typeof state === "string") {
-      params.state = state;
-    }
-
-    if (typeof district === "string") {
-      params.district = district;
-    }
-
-    if (typeof village === "string") {
-      params.village = village;
-    }
 
     if (typeof radiusInKm === "string") {
       const parsedRadius = Number(radiusInKm);

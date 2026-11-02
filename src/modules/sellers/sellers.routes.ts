@@ -14,10 +14,11 @@ import {
   updateSellerRatingSchema,
 } from "../seller-rating/sellerRating.validation";
 import { sellerRatingController } from "../seller-rating/sellerRating.controller";
+import { sellersListingQuery } from "./sellers.validation";
 
 const sellersRouter = Router();
 
-sellersRouter.get("/", optionalAuth, sellerController.getSellerListing);
+sellersRouter.get("/", optionalAuth, validateRequest(sellersListingQuery), sellerController.getSellerListing);
 
 sellersRouter.get("/saved", requireAuth, savedSellerController.getSavedSellers);
 

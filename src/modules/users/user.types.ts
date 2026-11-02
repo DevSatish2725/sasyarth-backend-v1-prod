@@ -22,12 +22,13 @@ export type UserDocument = HydratedDocument<UserEntity, IUserMethods>;
 
 export interface UpdateLocationPayload {
   location: {
-    village: string;
-    district: string;
-    state: string;
-    villageDisplayNames: { en: string; hi: string; }
-    districtDisplayNames: { en: string; hi: string; }
-    stateDisplayNames: { en: string; hi: string; }
+    villageId: string;
+    districtId: string;
+    stateId: string;
+    habitationId: string;
+    maujaId: string;
+    blockId: string;
+
     pincode: string;
   };
 

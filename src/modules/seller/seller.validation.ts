@@ -27,6 +27,11 @@ const applyBodySchema = z.object({
   //   ],
   // ),
   location: z.object({
+    habitationId: z
+      .string()
+      .regex(/^[0-9a-fA-F]{24}$/, "Invalid habitation id."),
+    maujaId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid mauja id."),
+    blockId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid block id."),
     villageId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid village id."),
     districtId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid district id."),
     stateId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid state id."),

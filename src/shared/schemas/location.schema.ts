@@ -21,34 +21,32 @@ const DisplayNamesSchema = new Schema(
 
 export const LocationSchema = new Schema(
   {
-    village: {
-      type: String,
+    habitationId: {
+      type: Schema.Types.ObjectId,
       required: true,
-      trim: true,
     },
 
-    district: {
-      type: String,
+    maujaId: {
+      type: Schema.Types.ObjectId,
       required: true,
-      trim: true,
     },
 
-    state: {
-      type: String,
+    blockId: {
+      type: Schema.Types.ObjectId,
       required: true,
-      trim: true,
+    },
+    villageId: {
+      type: Schema.Types.ObjectId,
+      required: true,
     },
 
-    villageDisplayNames: {
-      type: DisplayNamesSchema,
+    districtId: {
+      type: Schema.Types.ObjectId,
       required: true,
     },
-    districtDisplayNames: {
-      type: DisplayNamesSchema,
-      required: true,
-    },
-    stateDisplayNames: {
-      type: DisplayNamesSchema,
+
+    stateId: {
+      type: Schema.Types.ObjectId,
       required: true,
     },
 

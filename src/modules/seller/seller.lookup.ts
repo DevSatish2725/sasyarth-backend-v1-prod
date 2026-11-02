@@ -51,6 +51,65 @@ class SellerLookup {
   }
 
   /**
+   * Resolves location IDs into their corresponding location documents.
+   *
+   * This allows the frontend to display readable location names
+   * without making separate API requests for every seller.
+   */
+  getLocationLookupStages(): PipelineStage[] {
+    return [
+      {
+        $lookup: {
+          from: "states",
+          localField: "location.stateId",
+          foreignField: "_id",
+          as: "stateDetails",
+        },
+      },
+      {
+        $lookup: {
+          from: "districts",
+          localField: "location.districtId",
+          foreignField: "_id",
+          as: "districtDetails",
+        },
+      },
+      {
+        $lookup: {
+          from: "blocks",
+          localField: "location.blockId",
+          foreignField: "_id",
+          as: "blockDetails",
+        },
+      },
+      {
+        $lookup: {
+          from: "villages",
+          localField: "location.villageId",
+          foreignField: "_id",
+          as: "villageDetails",
+        },
+      },
+      {
+        $lookup: {
+          from: "maujas",
+          localField: "location.maujaId",
+          foreignField: "_id",
+          as: "maujaDetails",
+        },
+      },
+      {
+        $lookup: {
+          from: "habitations",
+          localField: "location.habitationId",
+          foreignField: "_id",
+          as: "habitationDetails",
+        },
+      },
+    ];
+  }
+
+  /**
    * Today's PUBLISHED inventory lookup.
    *
    * Seller._id

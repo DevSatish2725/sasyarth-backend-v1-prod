@@ -1,4 +1,4 @@
-import { LocationWithIds } from "../location/location.types";
+import { LocationDetails } from "../location/location.types";
 import { UserDocument, UserStatus } from "../users/user.types";
 import { SupportedLanguage, UserAccountType } from "../users/user.types";
 
@@ -18,9 +18,12 @@ export interface AuthUserResponse {
   preferredLanguage: SupportedLanguage;
 
   location: {
-    village: string;
-    district: string;
-    state: string;
+    stateId: string;
+    districtId: string;
+    blockId: string;
+    villageId: string;
+    maujaId: string;
+    habitationId: string;
     pincode: string;
   } | null;
 
@@ -51,7 +54,7 @@ export interface UserWithLocationIdsResponse {
   accountType: UserAccountType;
   preferredLanguage: SupportedLanguage;
 
-  location: LocationWithIds | null;
+  location: LocationDetails | null;
 
   isPhoneVerified: boolean;
   status: UserStatus;

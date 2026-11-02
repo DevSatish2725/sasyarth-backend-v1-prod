@@ -4,9 +4,7 @@ import {
   BroadSellerPipelineParams,
   GeoSellerPipelineParams,
   PublicSellerPipelineParams,
-  VillageSellerPipelineParams,
 } from "./seller.types";
-import { ApiError } from "../../utils/ApiError";
 
 /**
  * Public seller listing.
@@ -15,174 +13,6 @@ import { ApiError } from "../../utils/ApiError";
  */
 
 class SellerPipeline {
-  // getPublicSellerPipeline({
-  //   normalizedVegetableIds,
-  //   today,
-  //   limit,
-  //   userId,
-  // }: {
-  //   normalizedVegetableIds?: Types.ObjectId[];
-  //   today: Date;
-  //   limit: number;
-  //   userId: string;
-  // }): PipelineStage[] {
-  //   return [
-  //     /**
-  //      * Don't filter by location.
-  //      *
-  //      * We also don't actually need accountType here
-  //      * if Seller.userId is the source of truth.
-  //      */
-  //     ...sellerLookup.getSellerLookupStages(userId),
-
-  //     ...sellerLookup.getSellerReputationLookupStages(),
-
-  //     ...sellerLookup.getInventoryLookupStages(today, normalizedVegetableIds),
-
-  //     ...sellerLookup.getVegetableLookupStages(),
-
-  //     ...sellerLookup.getSellerRatingLookupStages(),
-
-  //     /**
-  //      * General listing order.
-  //      *
-  //      * You can change this later to:
-  //      *
-  //      * seller rating
-  //      * latest published
-  //      * promoted sellers
-  //      * etc.
-  //      */
-  //     {
-  //       $sort: {
-  //         "dailyInventory.updatedAt": -1,
-  //         "seller._id": 1,
-  //       },
-  //     },
-
-  //     {
-  //       $limit: limit,
-  //     },
-
-  //     {
-  //       $project: {
-  //         _id: 0,
-
-  //         userId: "$_id",
-
-  //         sellerId: "$seller._id",
-
-  //         fullName: 1,
-
-  //         location: 1,
-
-  //         reputation: 1,
-
-  //         businessType: "$seller.businessType",
-
-  //         vegetables: {
-  //           $let: {
-  //             vars: {
-  //               itemsWithMatch: {
-  //                 $map: {
-  //                   input: "$dailyInventory.availableItems",
-  //                   as: "item",
-
-  //                   in: {
-  //                     vegetableId: "$$item.vegetableId",
-  //                     sellerPrice: "$$item.sellerPrice",
-  //                     unit: "$$item.unit",
-  //                     availableQty: "$$item.availableQty",
-
-  //                     isMatched: normalizedVegetableIds?.length
-  //                       ? {
-  //                           $in: ["$$item.vegetableId", normalizedVegetableIds],
-  //                         }
-  //                       : false,
-  //                   },
-  //                 },
-  //               },
-  //             },
-
-  //             in: {
-  //               $map: {
-  //                 input: {
-  //                   $sortArray: {
-  //                     input: "$$itemsWithMatch",
-  //                     sortBy: {
-  //                       isMatched: -1,
-  //                     },
-  //                   },
-  //                 },
-
-  //                 as: "item",
-
-  //                 in: {
-  //                   $let: {
-  //                     vars: {
-  //                       vegetable: {
-  //                         $arrayElemAt: [
-  //                           {
-  //                             $filter: {
-  //                               input: "$vegetables",
-  //                               as: "vegetable",
-  //                               cond: {
-  //                                 $eq: [
-  //                                   "$$vegetable._id",
-  //                                   "$$item.vegetableId",
-  //                                 ],
-  //                               },
-  //                             },
-  //                           },
-  //                           0,
-  //                         ],
-  //                       },
-  //                     },
-
-  //                     in: {
-  //                       id: "$$item.vegetableId",
-  //                       name: "$$vegetable.name",
-  //                       imageUrl: "$$vegetable.imageUrl",
-
-  //                       sellerPrice: "$$item.sellerPrice",
-  //                       unit: "$$item.unit",
-  //                       availableQty: "$$item.availableQty",
-
-  //                       isMatched: "$$item.isMatched",
-  //                     },
-  //                   },
-  //                 },
-  //               },
-  //             },
-  //           },
-  //         },
-
-  //         averageRating: {
-  //           $round: [
-  //             {
-  //               $ifNull: [
-  //                 {
-  //                   $arrayElemAt: ["$ratingSummary.averageRating", 0],
-  //                 },
-  //                 0,
-  //               ],
-  //             },
-  //             1,
-  //           ],
-  //         },
-  //         ratingCount: {
-  //           $ifNull: [
-  //             {
-  //               $arrayElemAt: ["$ratingSummary.ratingCount", 0],
-  //             },
-  //             0,
-  //           ],
-  //         },
-  //       },
-  //     },
-  //   ];
-  // }
-
   getPublicSellerPipeline({
     normalizedVegetableIds,
     today,
@@ -219,6 +49,9 @@ class SellerPipeline {
        * No location filter is applied for public listing.
        */
       ...sellerLookup.getSellerLookupStages(userId),
+
+      // Resolve location IDs into location documents.
+      ...sellerLookup.getLocationLookupStages(),
 
       /**
        * Seller reputation.
@@ -291,8 +124,6 @@ class SellerPipeline {
 
           fullName: 1,
 
-          location: 1,
-
           reputation: 1,
 
           businessType: "$seller.businessType",
@@ -305,6 +136,78 @@ class SellerPipeline {
            * seller data to frontend.
            */
           inventoryUpdatedAt: "$dailyInventory.updatedAt",
+
+          location: {
+            state: {
+              $let: {
+                vars: {
+                  doc: { $arrayElemAt: ["$stateDetails", 0] },
+                },
+                in: {
+                  id: "$$doc._id",
+                  displayNames: "$$doc.displayNames",
+                },
+              },
+            },
+
+            district: {
+              $let: {
+                vars: {
+                  doc: { $arrayElemAt: ["$districtDetails", 0] },
+                },
+                in: {
+                  id: "$$doc._id",
+                  displayNames: "$$doc.displayNames",
+                },
+              },
+            },
+
+            block: {
+              $let: {
+                vars: {
+                  doc: { $arrayElemAt: ["$blockDetails", 0] },
+                },
+                in: {
+                  id: "$$doc._id",
+                  displayNames: "$$doc.displayNames",
+                },
+              },
+            },
+
+            village: {
+              $let: {
+                vars: {
+                  doc: { $arrayElemAt: ["$villageDetails", 0] },
+                },
+                in: {
+                  id: "$$doc._id",
+                  displayNames: "$$doc.displayNames",
+                },
+              },
+            },
+            mauja: {
+              $let: {
+                vars: {
+                  doc: { $arrayElemAt: ["$maujaDetails", 0] },
+                },
+                in: {
+                  id: "$$doc._id",
+                  displayNames: "$$doc.displayNames",
+                },
+              },
+            },
+            habitation: {
+              $let: {
+                vars: {
+                  doc: { $arrayElemAt: ["$habitationDetails", 0] },
+                },
+                in: {
+                  id: "$$doc._id",
+                  displayNames: "$$doc.displayNames",
+                },
+              },
+            },
+          },
 
           vegetables: {
             $let: {
@@ -422,448 +325,6 @@ class SellerPipeline {
       },
     ];
   }
-  /**
-   * Village-based seller matching.
-   *
-   * Used when buyer is logged in but
-   * hasn't provided GPS coordinates.
-   */
-  // getVillageSellerPipeline({
-  //   state,
-  //   district,
-  //   village,
-  //   normalizedVegetableIds,
-  //   today,
-  //   limit,
-  //   userId,
-  // }: {
-  //   state: string;
-  //   district: string;
-  //   village: string;
-  //   normalizedVegetableIds?: Types.ObjectId[];
-  //   today: Date;
-  //   limit: number;
-  //   userId: string;
-  // }): PipelineStage[] {
-  //   return [
-  //     /**
-  //      * Same village only.
-  //      */
-  //     {
-  //       $match: {
-  //         "location.state": state,
-  //         "location.district": district,
-  //         "location.village": village,
-  //       },
-  //     },
-
-  //     ...sellerLookup.getSellerLookupStages(userId),
-
-  //     ...sellerLookup.getInventoryLookupStages(today, normalizedVegetableIds),
-
-  //     ...sellerLookup.getVegetableLookupStages(),
-
-  //     ...sellerLookup.getSellerRatingLookupStages(),
-
-  //     {
-  //       $sort: {
-  //         "dailyInventory.updatedAt": -1,
-  //         "seller._id": 1,
-  //       },
-  //     },
-
-  //     {
-  //       $limit: limit,
-  //     },
-
-  //     {
-  //       $project: {
-  //         _id: 0,
-
-  //         userId: "$_id",
-
-  //         sellerId: "$seller._id",
-
-  //         fullName: 1,
-
-  //         location: 1,
-
-  //         businessType: "$seller.businessType",
-
-  //         matchType: {
-  //           $literal: "VILLAGE",
-  //         },
-
-  //         vegetables: {
-  //           $let: {
-  //             vars: {
-  //               itemsWithMatch: {
-  //                 $map: {
-  //                   input: "$dailyInventory.availableItems",
-  //                   as: "item",
-
-  //                   in: {
-  //                     vegetableId: "$$item.vegetableId",
-  //                     sellerPrice: "$$item.sellerPrice",
-  //                     unit: "$$item.unit",
-  //                     availableQty: "$$item.availableQty",
-
-  //                     isMatched: normalizedVegetableIds?.length
-  //                       ? {
-  //                           $in: ["$$item.vegetableId", normalizedVegetableIds],
-  //                         }
-  //                       : false,
-  //                   },
-  //                 },
-  //               },
-  //             },
-
-  //             in: {
-  //               $map: {
-  //                 input: {
-  //                   $sortArray: {
-  //                     input: "$$itemsWithMatch",
-  //                     sortBy: {
-  //                       isMatched: -1,
-  //                     },
-  //                   },
-  //                 },
-
-  //                 as: "item",
-
-  //                 in: {
-  //                   $let: {
-  //                     vars: {
-  //                       vegetable: {
-  //                         $arrayElemAt: [
-  //                           {
-  //                             $filter: {
-  //                               input: "$vegetables",
-  //                               as: "vegetable",
-  //                               cond: {
-  //                                 $eq: [
-  //                                   "$$vegetable._id",
-  //                                   "$$item.vegetableId",
-  //                                 ],
-  //                               },
-  //                             },
-  //                           },
-  //                           0,
-  //                         ],
-  //                       },
-  //                     },
-
-  //                     in: {
-  //                       id: "$$item.vegetableId",
-  //                       name: "$$vegetable.name",
-  //                       imageUrl: "$$vegetable.imageUrl",
-
-  //                       sellerPrice: "$$item.sellerPrice",
-  //                       unit: "$$item.unit",
-  //                       availableQty: "$$item.availableQty",
-
-  //                       isMatched: "$$item.isMatched",
-  //                     },
-  //                   },
-  //                 },
-  //               },
-  //             },
-  //           },
-  //         },
-
-  //         averageRating: {
-  //           $round: [
-  //             {
-  //               $ifNull: [
-  //                 {
-  //                   $arrayElemAt: ["$ratingSummary.averageRating", 0],
-  //                 },
-  //                 0,
-  //               ],
-  //             },
-  //             1,
-  //           ],
-  //         },
-  //         ratingCount: {
-  //           $ifNull: [
-  //             {
-  //               $arrayElemAt: ["$ratingSummary.ratingCount", 0],
-  //             },
-  //             0,
-  //           ],
-  //         },
-  //       },
-  //     },
-  //   ];
-  // }
-
-  getVillageSellerPipeline({
-    state,
-    district,
-    village,
-    normalizedVegetableIds,
-    today,
-    limit,
-    userId,
-    cursor,
-  }: VillageSellerPipelineParams): PipelineStage[] {
-    /**
-     * Cursor filtering has to happen after
-     * seller + inventory lookups because we
-     * depend on:
-     *
-     * dailyInventory.updatedAt
-     * seller._id
-     */
-    const cursorStages: PipelineStage[] = cursor
-      ? [
-          {
-            $match: {
-              $or: [
-                /**
-                 * Since updatedAt is sorted DESC,
-                 * next page must contain older
-                 * inventory timestamps.
-                 */
-                {
-                  "dailyInventory.updatedAt": {
-                    $lt: cursor.updatedAt,
-                  },
-                },
-
-                /**
-                 * If multiple sellers have the same
-                 * inventory timestamp, use seller._id
-                 * as the stable ASC tie-breaker.
-                 */
-                {
-                  "dailyInventory.updatedAt": cursor.updatedAt,
-
-                  "seller._id": {
-                    $gt: cursor.sellerId,
-                  },
-                },
-              ],
-            },
-          },
-        ]
-      : [];
-
-    return [
-      /**
-       * =====================================================
-       * SAME VILLAGE ONLY
-       * =====================================================
-       */
-      {
-        $match: {
-          "location.state": state,
-          "location.district": district,
-          "location.village": village,
-        },
-      },
-
-      /**
-       * Seller profile.
-       */
-      ...sellerLookup.getSellerLookupStages(userId),
-
-      /**
-       * Today's inventory.
-       *
-       * This must be before cursor matching because
-       * cursor relies on dailyInventory.updatedAt.
-       */
-      ...sellerLookup.getInventoryLookupStages(today, normalizedVegetableIds),
-
-      /**
-       * Vegetable master.
-       */
-      ...sellerLookup.getVegetableLookupStages(),
-
-      /**
-       * Rating summary.
-       */
-      ...sellerLookup.getSellerRatingLookupStages(),
-
-      /**
-       * Cursor filter.
-       */
-      ...cursorStages,
-
-      /**
-       * Stable sort for cursor pagination.
-       */
-      {
-        $sort: {
-          "dailyInventory.updatedAt": -1,
-          "seller._id": 1,
-        },
-      },
-
-      /**
-       * Fetch one extra row.
-       *
-       * Example:
-       * requested limit = 10
-       * pipeline returns max 11
-       *
-       * Service layer can then determine whether
-       * another page exists.
-       */
-      {
-        $limit: limit + 1,
-      },
-
-      /**
-       * =====================================================
-       * FINAL RESPONSE SHAPE
-       * =====================================================
-       */
-      {
-        $project: {
-          _id: 0,
-
-          userId: "$_id",
-
-          sellerId: "$seller._id",
-
-          fullName: 1,
-
-          location: 1,
-
-          businessType: "$seller.businessType",
-
-          matchType: {
-            $literal: "VILLAGE",
-          },
-
-          /**
-           * Internal pagination field.
-           *
-           * Keep this temporarily so the service can
-           * generate nextCursor.
-           */
-          inventoryUpdatedAt: "$dailyInventory.updatedAt",
-
-          vegetables: {
-            $let: {
-              vars: {
-                itemsWithMatch: {
-                  $map: {
-                    input: "$dailyInventory.availableItems",
-
-                    as: "item",
-
-                    in: {
-                      vegetableId: "$$item.vegetableId",
-
-                      sellerPrice: "$$item.sellerPrice",
-
-                      unit: "$$item.unit",
-
-                      availableQty: "$$item.availableQty",
-
-                      isMatched: normalizedVegetableIds?.length
-                        ? {
-                            $in: ["$$item.vegetableId", normalizedVegetableIds],
-                          }
-                        : false,
-                    },
-                  },
-                },
-              },
-
-              in: {
-                $map: {
-                  /**
-                   * Matching vegetables appear first.
-                   */
-                  input: {
-                    $sortArray: {
-                      input: "$$itemsWithMatch",
-
-                      sortBy: {
-                        isMatched: -1,
-                      },
-                    },
-                  },
-
-                  as: "item",
-
-                  in: {
-                    $let: {
-                      vars: {
-                        vegetable: {
-                          $arrayElemAt: [
-                            {
-                              $filter: {
-                                input: "$vegetables",
-
-                                as: "vegetable",
-
-                                cond: {
-                                  $eq: [
-                                    "$$vegetable._id",
-                                    "$$item.vegetableId",
-                                  ],
-                                },
-                              },
-                            },
-
-                            0,
-                          ],
-                        },
-                      },
-
-                      in: {
-                        id: "$$item.vegetableId",
-
-                        name: "$$vegetable.name",
-
-                        imageUrl: "$$vegetable.imageUrl",
-
-                        sellerPrice: "$$item.sellerPrice",
-
-                        unit: "$$item.unit",
-
-                        availableQty: "$$item.availableQty",
-
-                        isMatched: "$$item.isMatched",
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-
-          averageRating: {
-            $round: [
-              {
-                $ifNull: [
-                  {
-                    $arrayElemAt: ["$ratingSummary.averageRating", 0],
-                  },
-                  0,
-                ],
-              },
-              1,
-            ],
-          },
-
-          ratingCount: {
-            $ifNull: [
-              {
-                $arrayElemAt: ["$ratingSummary.ratingCount", 0],
-              },
-              0,
-            ],
-          },
-        },
-      },
-    ];
-  }
 
   /**
    * GPS based matching.
@@ -871,208 +332,6 @@ class SellerPipeline {
    * Only users having geoLocation can participate
    * because $geoNear works on User.geoLocation.
    */
-  // getGeoSellerPipeline({
-  //   longitude,
-  //   latitude,
-  //   radiusInKm,
-  //   normalizedVegetableIds,
-  //   today,
-  //   limit,
-  //   userId,
-  // }: {
-  //   longitude: number;
-  //   latitude: number;
-  //   radiusInKm: number;
-  //   normalizedVegetableIds?: Types.ObjectId[];
-  //   today: Date;
-  //   limit: number;
-  //   userId: string;
-  // }): PipelineStage[] {
-  //   return [
-  //     /**
-  //      * MUST be the first stage.
-  //      */
-  //     {
-  //       $geoNear: {
-  //         near: {
-  //           type: "Point",
-
-  //           coordinates: [longitude, latitude],
-  //         },
-
-  //         key: "geoLocation",
-
-  //         distanceField: "distanceInMeters",
-
-  //         maxDistance: radiusInKm * 1000,
-
-  //         spherical: true,
-  //       },
-  //     },
-
-  //     ...sellerLookup.getSellerLookupStages(userId),
-
-  //     ...sellerLookup.getSellerReputationLookupStages(),
-
-  //     ...sellerLookup.getInventoryLookupStages(today, normalizedVegetableIds),
-
-  //     ...sellerLookup.getSavedSellerLookupStages(userId),
-
-  //     ...sellerLookup.getVegetableLookupStages(),
-
-  //     ...sellerLookup.getSellerRatingLookupStages(),
-
-  //     {
-  //       $set: {
-  //         distanceInKm: {
-  //           $divide: ["$distanceInMeters", 1000],
-  //         },
-  //       },
-  //     },
-
-  //     {
-  //       $sort: {
-  //         distanceInMeters: 1,
-  //         "seller._id": 1,
-  //       },
-  //     },
-
-  //     {
-  //       $limit: limit,
-  //     },
-
-  //     {
-  //       $project: {
-  //         _id: 0,
-
-  //         userId: "$_id",
-
-  //         sellerId: "$seller._id",
-
-  //         fullName: 1,
-
-  //         location: 1,
-
-  //         isSaved: 1,
-
-  //         reputation: 1,
-
-  //         businessType: "$seller.businessType",
-
-  //         matchType: {
-  //           $literal: "NEARBY",
-  //         },
-
-  //         distanceInKm: {
-  //           /**
-  //            * Optional:
-  //            * round result for frontend.
-  //            */
-  //           $round: ["$distanceInKm", 2],
-  //         },
-
-  //         vegetables: {
-  //           $let: {
-  //             vars: {
-  //               itemsWithMatch: {
-  //                 $map: {
-  //                   input: "$dailyInventory.availableItems",
-  //                   as: "item",
-
-  //                   in: {
-  //                     vegetableId: "$$item.vegetableId",
-  //                     sellerPrice: "$$item.sellerPrice",
-  //                     unit: "$$item.unit",
-  //                     availableQty: "$$item.availableQty",
-
-  //                     isMatched: normalizedVegetableIds?.length
-  //                       ? {
-  //                           $in: ["$$item.vegetableId", normalizedVegetableIds],
-  //                         }
-  //                       : false,
-  //                   },
-  //                 },
-  //               },
-  //             },
-
-  //             in: {
-  //               $map: {
-  //                 input: {
-  //                   $sortArray: {
-  //                     input: "$$itemsWithMatch",
-  //                     sortBy: {
-  //                       isMatched: -1,
-  //                     },
-  //                   },
-  //                 },
-
-  //                 as: "item",
-
-  //                 in: {
-  //                   $let: {
-  //                     vars: {
-  //                       vegetable: {
-  //                         $arrayElemAt: [
-  //                           {
-  //                             $filter: {
-  //                               input: "$vegetables",
-  //                               as: "vegetable",
-  //                               cond: {
-  //                                 $eq: [
-  //                                   "$$vegetable._id",
-  //                                   "$$item.vegetableId",
-  //                                 ],
-  //                               },
-  //                             },
-  //                           },
-  //                           0,
-  //                         ],
-  //                       },
-  //                     },
-
-  //                     in: {
-  //                       id: "$$item.vegetableId",
-  //                       name: "$$vegetable.name",
-  //                       imageUrl: "$$vegetable.imageUrl",
-
-  //                       sellerPrice: "$$item.sellerPrice",
-  //                       unit: "$$item.unit",
-  //                       availableQty: "$$item.availableQty",
-
-  //                       isMatched: "$$item.isMatched",
-  //                     },
-  //                   },
-  //                 },
-  //               },
-  //             },
-  //           },
-  //         },
-
-  //         averageRating: {
-  //           $round: [
-  //             {
-  //               $ifNull: [
-  //                 {
-  //                   $arrayElemAt: ["$ratingSummary.averageRating", 0],
-  //                 },
-  //                 0,
-  //               ],
-  //             },
-  //             1,
-  //           ],
-  //         },
-  //         ratingCount: {
-  //           $ifNull: [
-  //             {
-  //               $arrayElemAt: ["$ratingSummary.ratingCount", 0],
-  //             },
-  //             0,
-  //           ],
-  //         },
-  //       },
-  //     },
-  //   ];
-  // }
 
   getGeoSellerPipeline({
     longitude,
@@ -1384,10 +643,12 @@ class SellerPipeline {
   }
 
   getBroadSellerPipeline({
-    scope,
-    state,
-    district,
-    village,
+    stateId,
+    districtId,
+    blockId,
+    villageId,
+    maujaId,
+    habitationId,
     normalizedVegetableIds,
     today,
     userId,
@@ -1398,47 +659,6 @@ class SellerPipeline {
      * =====================================================
      * LOCATION MATCH
      * =====================================================
-     */
-    const locationMatch: Record<string, unknown> = {
-      "location.state": state,
-    };
-
-    /**
-     * Village:
-     * State + District + Village
-     */
-    if (scope === "village") {
-      if (!district) {
-        throw new ApiError(400, "District is required for village search");
-      }
-
-      if (!village) {
-        throw new ApiError(400, "Village is required for village search");
-      }
-
-      locationMatch["location.district"] = district;
-
-      locationMatch["location.village"] = village;
-    }
-
-    /**
-     * District:
-     * State + District
-     */
-    if (scope === "district") {
-      if (!district) {
-        throw new ApiError(
-          400,
-          "State and district are required for district search",
-        );
-      }
-
-      locationMatch["location.district"] = district;
-    }
-
-    /**
-     * State:
-     * location.state is already enough.
      */
 
     /**
@@ -1460,6 +680,15 @@ class SellerPipeline {
      * updatedAt === cursor.updatedAt
      * AND seller._id > cursor.sellerId
      */
+    const locationMatch: Record<string, unknown> = {
+      "location.stateId": new Types.ObjectId(stateId),
+    };
+
+    locationMatch["location.districtId"] = new Types.ObjectId(districtId);
+    locationMatch["location.blockId"] = new Types.ObjectId(blockId);
+    locationMatch["location.villageId"] = new Types.ObjectId(villageId);
+    locationMatch["location.maujaId"] = new Types.ObjectId(maujaId);
+    locationMatch["location.habitationId"] = new Types.ObjectId(habitationId);
     const cursorStages: PipelineStage[] = cursor
       ? [
           {
@@ -1502,6 +731,9 @@ class SellerPipeline {
        * Seller profile.
        */
       ...sellerLookup.getSellerLookupStages(userId),
+
+      // Resolve location IDs into location documents.
+      ...sellerLookup.getLocationLookupStages(),
 
       /**
        * Seller reputation.
@@ -1581,17 +813,11 @@ class SellerPipeline {
 
           fullName: 1,
 
-          location: 1,
-
           isSaved: 1,
 
           reputation: 1,
 
           businessType: "$seller.businessType",
-
-          matchType: {
-            $literal: scope.toUpperCase(),
-          },
 
           /**
            * Keep this internally so the
@@ -1603,11 +829,84 @@ class SellerPipeline {
            */
           inventoryUpdatedAt: "$dailyInventory.updatedAt",
 
+          location: {
+            state: {
+              $let: {
+                vars: {
+                  doc: { $arrayElemAt: ["$stateDetails", 0] },
+                },
+                in: {
+                  id: "$$doc._id",
+                  displayNames: "$$doc.displayNames",
+                },
+              },
+            },
+
+            district: {
+              $let: {
+                vars: {
+                  doc: { $arrayElemAt: ["$districtDetails", 0] },
+                },
+                in: {
+                  id: "$$doc._id",
+                  displayNames: "$$doc.displayNames",
+                },
+              },
+            },
+
+            block: {
+              $let: {
+                vars: {
+                  doc: { $arrayElemAt: ["$blockDetails", 0] },
+                },
+                in: {
+                  id: "$$doc._id",
+                  displayNames: "$$doc.displayNames",
+                },
+              },
+            },
+
+            village: {
+              $let: {
+                vars: {
+                  doc: { $arrayElemAt: ["$villageDetails", 0] },
+                },
+                in: {
+                  id: "$$doc._id",
+                  displayNames: "$$doc.displayNames",
+                },
+              },
+            },
+            mauja: {
+              $let: {
+                vars: {
+                  doc: { $arrayElemAt: ["$maujaDetails", 0] },
+                },
+                in: {
+                  id: "$$doc._id",
+                  displayNames: "$$doc.displayNames",
+                },
+              },
+            },
+            habitation: {
+              $let: {
+                vars: {
+                  doc: { $arrayElemAt: ["$habitationDetails", 0] },
+                },
+                in: {
+                  id: "$$doc._id",
+                  displayNames: "$$doc.displayNames",
+                },
+              },
+            },
+          },
+
           /**
            * =================================================
            * VEGETABLES
            * =================================================
            */
+
           vegetables: {
             $let: {
               vars: {
@@ -1638,10 +937,6 @@ class SellerPipeline {
 
               in: {
                 $map: {
-                  /**
-                   * Matching searched vegetables
-                   * appear first.
-                   */
                   input: {
                     $sortArray: {
                       input: "$$itemsWithMatch",
@@ -1673,7 +968,6 @@ class SellerPipeline {
                                 },
                               },
                             },
-
                             0,
                           ],
                         },
@@ -1683,6 +977,8 @@ class SellerPipeline {
                         id: "$$item.vegetableId",
 
                         name: "$$vegetable.name",
+
+                        displayNames: "$$vegetable.displayNames",
 
                         imageUrl: "$$vegetable.imageUrl",
 

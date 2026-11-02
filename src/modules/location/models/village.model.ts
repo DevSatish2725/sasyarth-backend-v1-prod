@@ -28,9 +28,9 @@ export const VillageSchema = new Schema(
       index: true,
     },
 
-    districtId: {
+    blockId: {
       type: Schema.Types.ObjectId,
-      ref: "District",
+      ref: "Block",
       required: true,
       index: true,
     },

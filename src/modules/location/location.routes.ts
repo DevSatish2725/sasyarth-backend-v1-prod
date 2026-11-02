@@ -20,4 +20,6 @@ locationRouter.get(
   locationController.getVillages,
 );
 
+locationRouter.get("/search", locationController.getLocations);
+
 export default locationRouter;

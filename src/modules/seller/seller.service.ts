@@ -102,26 +102,46 @@ class SellerService {
     }
 
     const {
-      location: { stateId, districtId, villageId, pincode },
+      location: {
+        stateId,
+        districtId,
+        villageId,
+        habitationId,
+        maujaId,
+        blockId,
+        pincode,
+      },
     } = payload;
-    const state = await locationRepository.findStateById(
-      new Types.ObjectId(stateId),
-    );
+
+    const [state, district, village, habitation, mauja, block] =
+      await Promise.all([
+        locationRepository.findStateById(new Types.ObjectId(stateId)),
+        locationRepository.findDistrictById(new Types.ObjectId(districtId)),
+        locationRepository.findVillageById(new Types.ObjectId(villageId)),
+        locationRepository.findHabitationById(new Types.ObjectId(habitationId)),
+        locationRepository.findMaujaById(new Types.ObjectId(maujaId)),
+        locationRepository.findBlockById(new Types.ObjectId(blockId)),
+      ]);
     if (!state) {
       throw new ApiError(409, "Select valid state.");
     }
 
-    const district = await locationRepository.findDistrictById(
-      new Types.ObjectId(districtId),
-    );
     if (!district) {
       throw new ApiError(409, "Select valid district.");
     }
-    const village = await locationRepository.findVillageById(
-      new Types.ObjectId(villageId),
-    );
+
     if (!village) {
       throw new ApiError(409, "Select valid village.");
+    }
+
+    if (!habitation) {
+      throw new ApiError(409, "Select valid habitation.");
+    }
+    if (!mauja) {
+      throw new ApiError(409, "Select valid mauja.");
+    }
+    if (!block) {
+      throw new ApiError(409, "Select valid block.");
     }
 
     const createPayload: applySellerDto = {
@@ -134,12 +154,12 @@ class SellerService {
     const newSeller = await sellerRepository.create(createPayload);
     await userRepository.updateLocation(userId, {
       location: {
-        state: state.name,
-        district: district.name,
-        village: village.name,
-        villageDisplayNames: village.displayNames,
-        districtDisplayNames: district.displayNames,
-        stateDisplayNames: state.displayNames,
+        stateId,
+        districtId,
+        villageId,
+        habitationId,
+        maujaId,
+        blockId,
         pincode,
       },
     });
@@ -303,10 +323,12 @@ class SellerService {
 
   async getSellerListing({
     userId,
-    scope,
-    state,
-    district,
-    village,
+    stateId,
+    districtId,
+    blockId,
+    villageId,
+    maujaId,
+    habitationId,
     vegetableIds,
     latitude,
     longitude,
@@ -314,9 +336,6 @@ class SellerService {
     limit = DEFAULT_LIMIT,
     cursor,
   }: GetSellerListingParams) {
-    if (!scope && (state || district || village)) {
-      throw new ApiError(400, "Scope is required for location search.");
-    }
     const safeLimit = Math.min(Math.max(Math.floor(limit), 1), MAX_LIMIT);
 
     if (!Number.isFinite(radiusInKm) || radiusInKm <= 0) {
@@ -346,110 +365,17 @@ class SellerService {
      * =====================================================
      */
 
-    if (scope) {
-      if (!state?.trim()) {
-        throw new ApiError(400, "State is required for location search");
-      }
-
-      if (scope === "village") {
-        if (!state) {
-          throw new ApiError(400, "State is required for village search");
-        }
-        if (!district) {
-          throw new ApiError(400, "District is required for village search");
-        }
-
-        const stateInfo = await locationRepository.findStateByName(
-          state as string,
-        );
-        if (!stateInfo) {
-          throw new ApiError(400, "We're not serving at this state.");
-        }
-        const districtInfo =
-          await locationRepository.findDistrictByNameAndStateId(
-            district as string,
-            stateInfo._id,
-          );
-        if (!districtInfo) {
-          throw new ApiError(400, "Invalid search.");
-        }
-        const villageInfo =
-          await locationRepository.findVillageByNameAndDistrictId(
-            village as string,
-            districtInfo._id,
-          );
-        if (!villageInfo) {
-          throw new ApiError(400, "Invalid search");
-        }
-      }
-
-      if (scope === "district") {
-        const stateInfo = await locationRepository.findStateByName(
-          state as string,
-        );
-        if (!stateInfo) {
-          throw new ApiError(400, "We're not serving at this state.");
-        }
-        const districtInfo =
-          await locationRepository.findDistrictByNameAndStateId(
-            district as string,
-            stateInfo._id,
-          );
-        if (!districtInfo) {
-          throw new ApiError(400, "Invalid search.");
-        }
-        if (village) {
-          throw new ApiError(
-            400,
-            "Village should not be provided for district search",
-          );
-        }
-      }
-
-      if (scope === "state") {
-        const stateInfo = await locationRepository.findStateByName(
-          state as string,
-        );
-        if (!stateInfo) {
-          throw new ApiError(400, "We're not serving at this state.");
-        }
-        if (district && village) {
-          throw new ApiError(
-            400,
-            "District and village should not be provided for state search",
-          );
-        } else if (district) {
-          throw new ApiError(
-            400,
-            "District should not be provided for state search",
-          );
-        } else if (village) {
-          throw new ApiError(
-            400,
-            "Village should not be provided for state search",
-          );
-        }
-      }
-
+    if (habitationId) {
       const normalizedCursor = cursor
         ? this.decodeSellerCursor(cursor)
         : undefined;
       const pipeline = sellerPipeline.getBroadSellerPipeline({
-        scope,
-
-        state: state.trim(),
-
-        ...(district?.trim()
-          ? {
-              district: district.trim(),
-            }
-          : {}),
-
-        ...(village?.trim()
-          ? {
-              village: village.trim(),
-            }
-          : {}),
+        stateId,
+        districtId,
+        blockId,
+        villageId,
+        maujaId,
+        habitationId,
 
         ...(normalizedVegetableIds
           ? {
@@ -492,7 +418,7 @@ class SellerService {
       return {
         data,
 
-        matchingMode: scope.toUpperCase(),
+        matchingMode: "MANUAL LOCATION",
 
         nextCursor,
       };

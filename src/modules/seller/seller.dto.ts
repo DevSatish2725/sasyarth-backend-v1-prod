@@ -19,6 +19,9 @@ export interface applySellerWithLocationDto extends applySellerDto {
     stateId: string;
     districtId: string;
     villageId: string;
+    habitationId: string;
+    maujaId: string;
+    blockId: string;
     pincode: string;
   };
 }

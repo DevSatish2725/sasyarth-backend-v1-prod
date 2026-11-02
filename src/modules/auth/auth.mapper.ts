@@ -1,4 +1,4 @@
-import { LocationWithIds } from "../location/location.types";
+import { LocationDetails } from "../location/location.types";
 import { SellerDocument } from "../seller/seller.types";
 import { UserDocument } from "../users/user.types";
 import { AuthUserResponse, UserProfileResponse } from "./auth.types";
@@ -12,9 +12,12 @@ export const mapAuthUserResponse = (user: UserDocument): AuthUserResponse => {
 
     location: user.location
       ? {
-          village: user.location.village,
-          district: user.location.district,
-          state: user.location.state,
+          stateId: user.location.stateId.toString(),
+          districtId: user.location.districtId.toString(),
+          blockId: user.location.blockId.toString(),
+          villageId: user.location.villageId.toString(),
+          maujaId: user.location.maujaId.toString(),
+          habitationId: user.location.habitationId.toString(),
           pincode: user.location.pincode,
         }
       : null,
@@ -27,7 +30,7 @@ export const mapAuthUserResponse = (user: UserDocument): AuthUserResponse => {
 export const mapUserProfileResponse = (
   user: UserDocument,
   sellerProfile: SellerDocument | null,
-  locationWithIds: LocationWithIds | null,
+  locationDetails: LocationDetails | null,
 ): UserProfileResponse => {
   return {
     id: user._id.toString(),
@@ -37,20 +40,9 @@ export const mapUserProfileResponse = (
     preferredLanguage: user.preferredLanguage,
 
     location:
-      user.location && locationWithIds
+      user.location && locationDetails
         ? {
-            village: {
-              id: locationWithIds.village.id,
-              name: locationWithIds.village.name,
-            },
-            district: {
-              id: locationWithIds.district.id,
-              name: locationWithIds.district.name,
-            },
-            state: {
-              id: locationWithIds.state.id,
-              name: locationWithIds.state.name,
-            },
+            ...locationDetails,
             pincode: user.location.pincode,
           }
         : null,

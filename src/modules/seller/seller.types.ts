@@ -46,15 +46,14 @@ export interface VerificationDocument {
 }
 
 export type VerificationDocumentsList = VerificationDocument[];
-
-export type SellerSearchScope = "village" | "district" | "state";
-
 export interface GetSellerListingParams {
   userId: string;
-  scope?: SellerSearchScope;
-  state?: string;
-  district?: string;
-  village?: string;
+  stateId?: string | undefined;
+  districtId?: string | undefined;
+  blockId?: string | undefined;
+  villageId?: string | undefined;
+  maujaId?: string | undefined;
+  habitationId?: string | undefined;
   vegetableIds?: string[];
   latitude?: number | undefined;
   longitude?: number | undefined;
@@ -64,11 +63,12 @@ export interface GetSellerListingParams {
 }
 
 export interface BroadSellerPipelineParams {
-  scope: "state" | "district" | "village";
-
-  state: string;
-  district?: string;
-  village?: string;
+  stateId: string | undefined;
+  districtId: string | undefined;
+  blockId: string | undefined;
+  villageId: string | undefined;
+  maujaId: string | undefined;
+  habitationId: string | undefined;
 
   normalizedVegetableIds?: Types.ObjectId[];
 
@@ -121,7 +121,6 @@ export interface SellerCursorPayload {
   updatedAt: string;
   sellerId: string;
 }
-
 
 export interface PublicSellerPipelineParams {
   normalizedVegetableIds?: Types.ObjectId[];

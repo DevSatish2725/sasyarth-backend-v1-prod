@@ -4,6 +4,8 @@ import { DistrictSchema } from "./models/district.model";
 import { VillageSchema } from "./models/village.model";
 import { Types } from "mongoose";
 
+import { Request } from "express";
+
 export type StateEntity = InferSchemaType<typeof StateSchema>;
 
 export type StateDocument = HydratedDocument<StateEntity>;
@@ -28,18 +30,36 @@ export interface SearchVillageParams {
   limit?: number;
 }
 
-export interface LocationWithIds {
+export interface LocationDetails {
+  stateId: string;
   state: {
-    id: string;
-    name: string;
+    en: string;
+    hi: string;
   };
+  districtId: string;
   district: {
-    id: string;
-    name: string;
+    en: string;
+    hi: string;
   };
+  blockId: string;
+  block: {
+    en: string;
+    hi: string;
+  };
+  villageId: string;
   village: {
-    id: string;
-    name: string;
+    en: string;
+    hi: string;
+  };
+  maujaId: string;
+  mauja: {
+    en: string;
+    hi: string;
+  };
+  habitationId: string;
+  habitation: {
+    en: string;
+    hi: string;
   };
   pincode: string;
 }
@@ -68,5 +88,32 @@ export interface Village {
   displayNames: {
     en: string;
     hi: string;
+  };
+}
+
+export interface LocationNames {
+  en: string;
+  hi: string;
+}
+
+export interface HabitationSuggestion {
+  habitationId: string;
+  habitation: LocationNames;
+  maujaId: string;
+  mauja: LocationNames;
+  villageId: string;
+  village: LocationNames;
+  blockId: string;
+  block: LocationNames;
+  districtId: string;
+  district: LocationNames;
+  stateId: string;
+  state: LocationNames;
+}
+
+export interface SearchRequest extends Request {
+  query: Request["query"] & {
+    q?: string;
+    limit?: string;
   };
 }
