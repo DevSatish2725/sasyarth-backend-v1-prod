@@ -18,7 +18,6 @@
  */
 
 import app from "./app";
-import { env } from "./config/env";
 import { connectDatabase } from "./config/database";
 import { logger } from "./config/logger";
 import { startNotificationReminderJobs } from "./jobs/notificationReminder.job";
