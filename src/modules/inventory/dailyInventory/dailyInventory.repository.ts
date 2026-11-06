@@ -24,7 +24,7 @@ class DailyInventoryRepository {
         "items.vegetableId": PopulatedVegetable;
       }>({
         path: "items.vegetableId",
-        select: "name imageUrl displayNames",
+        select: "name imageUrl displayNames allowedUnits",
       })
       .lean()
       .exec();
@@ -124,7 +124,7 @@ class DailyInventoryRepository {
       status: STATUS.PUBLISHED,
     }).populate({
       path: "items.vegetableId",
-      select: "_id name imageUrl displayNames searchAliases",
+      select: "_id name imageUrl displayNames searchAliases allowedUnits",
     });
   }
 

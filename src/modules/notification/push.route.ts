@@ -31,20 +31,44 @@ pushRouter.delete(
   pushController.unsubscribeAll,
 );
 
+// pushRouter.post(
+//   "/test",
+//   requireAuth,
+//   catchAsync(async (req, res) => {
+//     await pushService.sendToUser(req.user!.userId, {
+//       title: "Sasyarth Test",
+//       body: "Push notification is working.",
+//       url: "/sellers",
+//     });
+
+//     sendResponse(res, {
+//       statusCode: 200,
+//       message: "TEST_NOTIFICATION_SENT",
+//       data: null,
+//     });
+//   }),
+// );
+
 pushRouter.post(
   "/test",
   requireAuth,
   catchAsync(async (req, res) => {
-    await pushService.sendToUser(req.user!.userId, {
-      title: "Sasyarth Test",
-      body: "Push notification is working.",
-      url: "/sellers",
-    });
+    const result = await pushService.sendToUser(
+      req.user!.userId,
+      {
+        title: "Sasyarth Test",
+        body: "Push notification is working.",
+        url: "/sellers",
+      },
+    );
+
+    // Print actual push delivery result in backend terminal.
+    console.log("Push delivery result:", result);
 
     sendResponse(res, {
       statusCode: 200,
-      message: "TEST_NOTIFICATION_SENT",
-      data: null,
+      message: "TEST_NOTIFICATION_COMPLETED",
+      data: result,
     });
   }),
 );
