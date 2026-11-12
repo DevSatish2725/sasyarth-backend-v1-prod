@@ -134,7 +134,7 @@ async function seedDistricts() {
 }
 
 async function seedBlocks() {
-  const filePath = path.resolve(process.cwd(), "data/UP_Ayodhya_Block.xlsx");
+  const filePath = path.resolve(process.cwd(), "data/UP_Sultanpur_Block.xlsx");
 
   const rows = readExcel<BlockExcelRow>(filePath);
 
@@ -327,7 +327,7 @@ async function seedVillages() {
 async function seedMauja() {
   const filePath = path.resolve(
     process.cwd(),
-    "data/UP_Ayodhay_Block_Villages_Mauja.xlsx",
+    "data/UP_Sultanpur_Block_Villages_Mauja.xlsx",
   );
 
   const rows = readExcel<MaujaExcelRow>(filePath);
@@ -422,7 +422,7 @@ async function seedMauja() {
 async function seedHabitation() {
   const filePath = path.resolve(
     process.cwd(),
-    "data/UP_Ayodhya_Block_Villages_Mauja_Habitation.xlsx",
+    "data/UP_Sultanpur_Block_Villages_Mauja_Habitation.xlsx",
   );
 
   const rows = readExcel<HabitationExcelRow>(filePath);
