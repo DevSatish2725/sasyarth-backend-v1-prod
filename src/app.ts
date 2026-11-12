@@ -48,7 +48,8 @@ app.use(
     origin: [
       "http://localhost:3000",
       "https://sasyarth-frontend-prod.vercel.app",
-      "http://localhost:5173"
+      "http://localhost:5173",
+      "https://sasyarth.gymboss.in"
     ],
     credentials: true,
   }),
