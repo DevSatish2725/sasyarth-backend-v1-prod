@@ -126,6 +126,8 @@ class SellerPipeline {
 
           reputation: 1,
 
+          geoLocation: 1,
+
           businessType: "$seller.businessType",
 
           /**
@@ -500,6 +502,8 @@ class SellerPipeline {
 
           location: 1,
 
+          geoLocation: 1,
+
           isSaved: 1,
 
           reputation: 1,
@@ -817,6 +821,8 @@ class SellerPipeline {
 
           reputation: 1,
 
+          geoLocation: 1,
+
           businessType: "$seller.businessType",
 
           /**
@@ -900,6 +906,8 @@ class SellerPipeline {
               },
             },
           },
+
+          // geoLocation: 1,
 
           /**
            * =================================================

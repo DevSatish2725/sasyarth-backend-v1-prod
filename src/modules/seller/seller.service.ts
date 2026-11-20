@@ -111,6 +111,7 @@ class SellerService {
         blockId,
         pincode,
       },
+      geoLocation,
     } = payload;
 
     const [state, district, village, habitation, mauja, block] =
@@ -147,7 +148,7 @@ class SellerService {
     const createPayload: applySellerDto = {
       userId: new Types.ObjectId(userId),
       businessType: payload.businessType,
-      verificationStatus: SELLER_VERIFICATION_STATUS.PENDING,
+      verificationStatus: SELLER_VERIFICATION_STATUS.VERIFIED, // TODO: Later change status by admin approval
       documents: payload.documents,
     };
 
@@ -162,6 +163,7 @@ class SellerService {
         blockId,
         pincode,
       },
+      ...(geoLocation ? { geoLocation } : {}),
     });
     return toSellerProfileDto(newSeller);
   }

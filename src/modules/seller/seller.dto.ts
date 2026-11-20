@@ -24,6 +24,10 @@ export interface applySellerWithLocationDto extends applySellerDto {
     blockId: string;
     pincode: string;
   };
+  geoLocation?: {
+    type: "Point";
+    coordinates: [number, number];
+  };
 }
 
 export interface reApplySellerDto {
