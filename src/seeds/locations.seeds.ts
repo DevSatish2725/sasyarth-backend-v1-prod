@@ -327,7 +327,7 @@ async function seedVillages() {
 async function seedMauja() {
   const filePath = path.resolve(
     process.cwd(),
-    "data/UP_Sultanpur_Block_Villages_Mauja.xlsx",
+    "data/UP_Ayodhya_Block_Villages_Mauja.xlsx",
   );
 
   const rows = readExcel<MaujaExcelRow>(filePath);
@@ -350,6 +350,8 @@ async function seedMauja() {
 
   let processed = 0;
   let skipped = 0;
+
+  console.log("rows", rows);
 
   for (const row of rows) {
     const villageLgdCode = Number(row["Village LGD Code"]);
@@ -422,7 +424,7 @@ async function seedMauja() {
 async function seedHabitation() {
   const filePath = path.resolve(
     process.cwd(),
-    "data/UP_Sultanpur_Block_Villages_Mauja_Habitation.xlsx",
+    "data/UP_Ayodhya_Block_Villages_Mauja_Habitation.xlsx",
   );
 
   const rows = readExcel<HabitationExcelRow>(filePath);

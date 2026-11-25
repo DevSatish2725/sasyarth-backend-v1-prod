@@ -122,9 +122,9 @@ class NotificationReminderService {
       }
 
       const result = await pushService.sendToUser(userId, {
-        title: "Publish today's inventory",
+        title: "आज की सब्ज़ियों की जानकारी डालें",
 
-        body: "Update today's available vegetables so nearby buyers can find you.",
+        body: "अपनी आज की उपलब्ध सब्ज़ियाँ अपडेट करें, ताकि आसपास के खरीदार आपको ढूँढ सकें।",
 
         url: "/seller/inventory",
 
@@ -197,9 +197,9 @@ class NotificationReminderService {
       }
 
       const result = await pushService.sendToUser(user._id, {
-        title: "Explore sellers on Sasyarth",
+        title: "Sasyarth पर विक्रेताओं की खोज करें",
 
-        body: "Discover fresh vegetables from sellers available on Sasyarth.",
+        body: "उपलब्ध विक्रेताओं से ताज़ी सब्ज़ियाँ खोजें।",
 
         url: "/sellers",
 
