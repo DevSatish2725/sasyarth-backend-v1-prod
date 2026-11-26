@@ -49,7 +49,7 @@ app.use(
       "http://localhost:3000",
       "https://sasyarth-frontend-prod.vercel.app",
       "http://localhost:5173",
-      "https://sasyarth.gymboss.in"
+      "https://sasyarth.gymboss.in",
     ],
     credentials: true,
   }),
@@ -69,7 +69,7 @@ app.use(cookieParser());
  * -----------------------
  */
 
-app.get("/health", router);
+app.use("/health", router);
 
 /**
  * -----------------------
